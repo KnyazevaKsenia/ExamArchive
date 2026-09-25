@@ -1,0 +1,34 @@
+# Rider / Visual Studio
+.idea/
+.vs/
+*.user
+*.suo
+
+# .NET
+**/bin/
+**/obj/
+
+# Node
+**/node_modules/
+**/dist/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MinIO data
+minio/minio-data/
+**/minio-data/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Secrets
+appsettings.Local.json
+appsettings.Secrets.json

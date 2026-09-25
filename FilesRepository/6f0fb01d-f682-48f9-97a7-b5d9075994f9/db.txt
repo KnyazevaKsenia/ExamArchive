@@ -1,0 +1,180 @@
+-- Таблица пользователей
+CREATE TABLE Users (
+    UserId SERIAL PRIMARY KEY, -- Уникальный идентификатор пользователя
+    Username VARCHAR(50) NOT NULL, -- Имя пользователя
+    Email VARCHAR(100) NOT NULL UNIQUE, -- Электронная почта пользователя (уникальная)
+    PasswordHash VARCHAR(255) NOT NULL, -- Хэш пароля пользователя для безопасности
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Дата и время создания аккаунта
+);
+
+-- Таблица профилей
+CREATE TABLE Profiles (
+    ProfileId SERIAL PRIMARY KEY, -- Уникальный идентификатор профиля
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    FirstName VARCHAR(50), -- Имя пользователя
+    LastName VARCHAR(50), -- Фамилия пользователя
+    Bio TEXT, -- Биография пользователя
+    ProfilePicture VARCHAR(255) -- URL изображения профиля пользователя
+);
+
+-- Таблица постов
+CREATE TABLE Posts (
+    PostId SERIAL PRIMARY KEY, -- Уникальный идентификатор поста
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    Content TEXT, -- Содержимое поста
+    ImageUrl VARCHAR(255), -- URL изображения, прикрепленного к посту
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время создания поста
+    IsDraft BOOLEAN DEFAULT FALSE,
+    IsScheduled BOOLEAN DEFAULT FALSE,
+    IsDeleted BOOLEAN DEFAULT FALSE,
+    DeletedByAdmin BOOLEAN DEFAULT FALSE, -- если удалено администратором
+    EditedAt TIMESTAMP,
+    DeletedAt TIMESTAMP -- Дата удаления поста
+);
+
+-- Таблица комментариев
+CREATE TABLE Comments (
+    CommentId SERIAL PRIMARY KEY, -- Уникальный идентификатор комментария
+    PostId INT REFERENCES Posts(PostId), -- Ссылка на таблицу Posts (пост)
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    Content TEXT, -- Содержимое комментария
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время создания комментария
+    IsDeleted BOOLEAN DEFAULT FALSE, -- Признак удаления
+    DeletedByAdmin BOOLEAN DEFAULT FALSE, -- Комментарий может быть удален администратором соцсети
+    DeletedAt TIMESTAMP, -- Дата удаления комментария
+    EditedAt TIMESTAMP -- Дата редактирования комментария
+);
+
+-- Таблица лайков постов
+CREATE TABLE PostLikes (
+    PostLikeId SERIAL PRIMARY KEY, -- Уникальный идентификатор лайка поста
+    PostId INT REFERENCES Posts(PostId), -- Ссылка на таблицу Posts (пост)
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время лайка поста
+    IsDeleted BOOLEAN DEFAULT FALSE,
+    EditedAt TIMESTAMP
+);
+
+-- Таблица лайков комментариев
+CREATE TABLE CommentLikes (
+    CommentLikeId SERIAL PRIMARY KEY, -- Уникальный идентификатор лайка комментария
+    CommentId INT REFERENCES Comments(CommentId), -- Ссылка на таблицу Comments (комментарий)
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время лайка комментария
+    IsDeleted BOOLEAN DEFAULT FALSE
+);
+
+-- Таблица друзей
+CREATE TABLE Friends (
+    FriendId SERIAL PRIMARY KEY, -- Уникальный идентификатор записи дружбы
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    FriendUserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (друг пользователя)
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время создания дружбы
+    IsDeleted BOOLEAN DEFAULT FALSE
+);
+
+-- Таблица чатов
+CREATE TABLE Chats (
+    ChatId SERIAL PRIMARY KEY, -- Уникальный идентификатор чата
+    ChatName VARCHAR(255) NOT NULL, -- Название чата
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время создания чата
+    IsDeleted BOOLEAN DEFAULT FALSE,
+    DeletedAt TIMESTAMP
+);
+
+-- Таблица принадлежности пользователей к чатам
+CREATE TABLE UserChats (
+    UserChatId SERIAL PRIMARY KEY, -- Уникальный идентификатор принадлежности
+    ChatId INT REFERENCES Chats(ChatId), -- Ссылка на таблицу Chats
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users
+    IsDeleted BOOLEAN DEFAULT FALSE, -- Признак удаления
+    DeletedAt TIMESTAMP, -- Дата удаления
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Дата и время добавления пользователя в чат
+);
+
+-- Таблица сообщений
+CREATE TABLE Messages (
+    MessageId SERIAL PRIMARY KEY, -- Уникальный идентификатор сообщения
+    ChatId INT REFERENCES Chats(ChatId), -- Ссылка на таблицу Chats
+    SenderId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (отправитель)
+    Content TEXT, -- Содержимое сообщения
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Дата и время отправки сообщения
+);
+
+-- Таблица групп
+CREATE TABLE Groups (
+    GroupId SERIAL PRIMARY KEY, -- Уникальный идентификатор группы
+    GroupName VARCHAR(100) NOT NULL, -- Название группы
+    Description TEXT, -- Описание группы
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Дата и время создания группы
+);
+
+-- Таблица участников групп
+CREATE TABLE GroupMembers (
+    GroupMemberId SERIAL PRIMARY KEY, -- Уникальный идентификатор участника группы
+    GroupId INT REFERENCES Groups(GroupId), -- Ссылка на таблицу Groups (группа)
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    JoinedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время вступления в группу
+    IsDeleted BOOLEAN DEFAULT FALSE, -- Признак удаления
+    DeletedAt TIMESTAMP -- Дата удаления участника из группы
+);
+
+-- Таблица событий
+CREATE TABLE Events (
+    EventId SERIAL PRIMARY KEY, -- Уникальный идентификатор события
+    EventName VARCHAR(100) NOT NULL, -- Название события
+    Description TEXT, -- Описание события
+    Location VARCHAR(255), -- Место проведения события,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время создания события
+    MaxParticipants INT,
+    EventDate TIMESTAMP CHECK (EventDate >= CURRENT_TIMESTAMP), -- Дата и время проведения с ограничением
+    Duration INTERVAL, -- Продолжительность мероприятия
+    IsCancelled BOOLEAN DEFAULT FALSE -- Признак отмены мероприятия
+);
+
+-- Таблица участников событий
+CREATE TABLE EventParticipants (
+    EventParticipantId SERIAL PRIMARY KEY, -- Уникальный идентификатор участника события
+    EventId INT REFERENCES Events(EventId), -- Ссылка на таблицу Events (событие)
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    JoinedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время регистрации на событие
+    IsDeleted BOOLEAN DEFAULT FALSE, -- Признак удаления регистрации
+    DeletedAt TIMESTAMP -- Дата удаления регистрации
+);
+
+-- Таблица уведомлений
+CREATE TABLE Notifications (
+    NotificationId SERIAL PRIMARY KEY, -- Уникальный идентификатор уведомления
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    Content TEXT, -- Содержимое уведомления
+    IsRead BOOLEAN DEFAULT FALSE, -- Прочитано ли уведомление
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Дата и время создания уведомления
+);
+
+-- Таблица настроек пользователей
+CREATE TABLE UserSettings (
+    UserSettingsId SERIAL PRIMARY KEY, -- Уникальный идентификатор настроек пользователя
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    Settings JSONB -- Настройки пользователя в формате JSON
+);
+
+-- Таблица альбомов
+CREATE TABLE Albums (
+    AlbumId SERIAL PRIMARY KEY, -- Уникальный идентификатор альбома
+    UserId INT REFERENCES Users(UserId), -- Ссылка на таблицу Users (пользователь)
+    AlbumName VARCHAR(100), -- Название альбома
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время создания альбома
+    IsDeleted BOOLEAN DEFAULT FALSE, -- Признак удаления
+    DeletedAt TIMESTAMP -- Дата удаления альбома
+);
+
+-- Таблица фотографий
+CREATE TABLE Photos (
+    PhotoId SERIAL PRIMARY KEY, -- Уникальный идентификатор фотографии
+    AlbumId INT REFERENCES Albums(AlbumId), -- Ссылка на таблицу Albums (альбом)
+    PhotoUrl VARCHAR(255), -- URL фотографии
+    Caption TEXT, -- Описание фотографии
+    UploadedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата и время загрузки фотографии
+    IsDeleted BOOLEAN DEFAULT FALSE, -- Признак удаления
+    DeletedAt TIMESTAMP -- Дата удаления фотографии
+);

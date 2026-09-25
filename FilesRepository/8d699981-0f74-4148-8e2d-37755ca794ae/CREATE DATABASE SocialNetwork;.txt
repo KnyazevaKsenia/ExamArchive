@@ -1,0 +1,140 @@
+CREATE DATABASE SocialNetwork;
+
+\c SocialNetwork;
+
+-- Таблица пользователей
+CREATE TABLE Users (
+    UserId SERIAL PRIMARY KEY,
+    Username VARCHAR(50) NOT NULL,
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    PasswordHash VARCHAR(255) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица профилей
+CREATE TABLE Profiles (
+    ProfileId SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(UserId),
+    FirstName VARCHAR(50),
+    LastName VARCHAR(50),
+    Bio TEXT,
+    ProfilePicture VARCHAR(255)
+);
+
+-- Таблица постов
+CREATE TABLE Posts (
+    PostId SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(UserId),
+    Content TEXT,
+    ImageUrl VARCHAR(255),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица комментариев
+CREATE TABLE Comments (
+    CommentId SERIAL PRIMARY KEY,
+    PostId INT REFERENCES Posts(PostId),
+    UserId INT REFERENCES Users(UserId),
+    Content TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица лайков постов
+CREATE TABLE PostLikes (
+    PostLikeId SERIAL PRIMARY KEY,
+    PostId INT REFERENCES Posts(PostId),
+    UserId INT REFERENCES Users(UserId),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица лайков комментариев
+CREATE TABLE CommentLikes (
+    CommentLikeId SERIAL PRIMARY KEY,
+    CommentId INT REFERENCES Comments(CommentId),
+    UserId INT REFERENCES Users(UserId),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица друзей
+CREATE TABLE Friends (
+    FriendId SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(UserId),
+    FriendUserId INT REFERENCES Users(UserId),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица сообщений
+CREATE TABLE Messages (
+    MessageId SERIAL PRIMARY KEY,
+    SenderId INT REFERENCES Users(UserId),
+    ReceiverId INT REFERENCES Users(UserId),
+    Content TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица групп
+CREATE TABLE Groups (
+    GroupId SERIAL PRIMARY KEY,
+    GroupName VARCHAR(100) NOT NULL,
+    Description TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица участников групп
+CREATE TABLE GroupMembers (
+    GroupMemberId SERIAL PRIMARY KEY,
+    GroupId INT REFERENCES Groups(GroupId),
+    UserId INT REFERENCES Users(UserId),
+    JoinedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица событий
+CREATE TABLE Events (
+    EventId SERIAL PRIMARY KEY,
+    EventName VARCHAR(100) NOT NULL,
+    Description TEXT,
+    Location VARCHAR(255),
+    EventDate TIMESTAMP,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица участников событий
+CREATE TABLE EventParticipants (
+    EventParticipantId SERIAL PRIMARY KEY,
+    EventId INT REFERENCES Events(EventId),
+    UserId INT REFERENCES Users(UserId),
+    JoinedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица уведомлений
+CREATE TABLE Notifications (
+    NotificationId SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(UserId),
+    Content TEXT,
+    IsRead BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица настроек пользователей
+CREATE TABLE UserSettings (
+    UserSettingsId SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(UserId),
+    Settings JSONB
+);
+
+-- Таблица альбомов
+CREATE TABLE Albums (
+    AlbumId SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(UserId),
+    AlbumName VARCHAR(100),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица фотографий
+CREATE TABLE Photos (
+    PhotoId SERIAL PRIMARY KEY,
+    AlbumId INT REFERENCES Albums(AlbumId),
+    PhotoUrl VARCHAR(255),
+    Caption TEXT,
+    UploadedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
