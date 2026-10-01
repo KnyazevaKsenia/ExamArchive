@@ -44,17 +44,21 @@ export default {
              Object.keys(this.normalizedMaterial.fileNameUrl).length > 0;
     },
     imagesCount() {
-      return this.normalizedMaterial.imagesNameUrl ? 
-        Object.keys(this.normalizedMaterial.imagesNameUrl).length : 0;
+      return this.normalizedMaterial.imagesNameUrl
+        ? Object.keys(this.normalizedMaterial.imagesNameUrl).length
+        : 0;
     },
     filesCount() {
-      return this.normalizedMaterial.fileNameUrl ? 
-        Object.keys(this.normalizedMaterial.fileNameUrl).length : 0;
+      return this.normalizedMaterial.fileNameUrl
+        ? Object.keys(this.normalizedMaterial.fileNameUrl).length
+        : 0;
     },
     truncatedDescription() {
       const description = this.normalizedMaterial.description;
       if (!description) return '';
-      return description.length > 100 ? description.substring(0, 100) + '...' : description;
+      return description.length > 120
+        ? description.substring(0, 120) + '...'
+        : description;
     },
     formattedDate() {
       if (!this.normalizedMaterial.date) return '';
@@ -63,6 +67,7 @@ export default {
   },
   mounted() {
     this.checkAuthentication();
+
     if (this.isAuthenticated) {
       this.getUserInfoFromToken();
       this.checkIfLiked();
@@ -75,6 +80,7 @@ export default {
     getUserInfoFromToken() {
       try {
         const token = localStorage.getItem('AuthToken');
+
         if (token) {
           const decodedToken = jwtDecode(token);
           this.studentId = decodedToken.StudentId || decodedToken.studentId;
@@ -85,11 +91,11 @@ export default {
     },
     async checkIfLiked() {
       if (!this.isAuthenticated) return;
-      
+
       try {
         const response = await axios.get(API_ENDPOINTS.GET_STUDENT_FAVORITES_IDS);
+
         if (response.data && Array.isArray(response.data)) {
-          // Check if current material is in favorites by ID
           const materialId = this.normalizedMaterial.id;
           this.isLiked = response.data.some(id => id === materialId);
         }
@@ -99,10 +105,13 @@ export default {
     },
     downloadFile(url, fileName) {
       let downloadUrl = url;
+
       if (!/^https?:\/\//i.test(url)) {
-        downloadUrl = `${import.meta.env.VITE_APP_API_URL || 'https://localhost:44356'}${url.startsWith('/') ? url : `/${url}`}`;
+        downloadUrl =
+          `${import.meta.env.VITE_APP_API_URL || 'https://localhost:44356'}` +
+          `${url.startsWith('/') ? url : `/${url}`}`;
       }
-      
+
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = fileName;
@@ -120,19 +129,23 @@ export default {
       }
 
       if (this.isLiking) return;
-      
+
       this.isLiking = true;
-      
+
       try {
         if (!this.isLiked) {
-          // Add to favorites
-          const response = await axios.post(`${API_ENDPOINTS.ADD_FAVORITE}/${this.normalizedMaterial.id}`);
+          const response = await axios.post(
+            `${API_ENDPOINTS.ADD_FAVORITE}/${this.normalizedMaterial.id}`
+          );
+
           if (response.status === 200) {
             this.isLiked = true;
           }
         } else {
-          // Remove from favorites
-          const response = await axios.get(`${API_ENDPOINTS.REMOVE_FAVORITE}/${this.normalizedMaterial.id}`);
+          const response = await axios.get(
+            `${API_ENDPOINTS.REMOVE_FAVORITE}/${this.normalizedMaterial.id}`
+          );
+
           if (response.status === 200) {
             this.isLiked = false;
           }
@@ -147,177 +160,267 @@ export default {
 }
 </script>
 
-
 <template>
-    <div class="material-card">
-      <h3>{{ normalizedMaterial.subject }}</h3>
-  
-      <div v-if="normalizedMaterial.description" class="description">
-        <p>{{ truncatedDescription }}</p>
+  <article class="material-card">
+    <div class="card-top">
+      <div class="subject-block">
+        <div class="subject-label">ПРЕДМЕТ</div>
+        <h3>{{ normalizedMaterial.subject || 'Без названия' }}</h3>
       </div>
-      
-      <div class="material-info">
-        <p v-if="normalizedMaterial.teacherName"><strong>Преподаватель:</strong> {{ normalizedMaterial.teacherName }}</p>
-        <p><strong>Курс:</strong> {{ normalizedMaterial.course }}</p>
-        <p><strong>Семестр:</strong> {{ normalizedMaterial.semester }}</p>
-        <p v-if="formattedDate"><strong>Дата:</strong> {{ formattedDate }}</p>
+
+      <button
+        class="favorite-button"
+        :class="{ liked: isLiked }"
+        :disabled="isLiking"
+        :title="isLiked ? 'Убрать из избранного' : 'Добавить в избранное'"
+        type="button"
+        @click.stop="toggleLike"
+      >
+        <span aria-hidden="true">{{ isLiked ? '♥' : '♡' }}</span>
+      </button>
+    </div>
+
+    <p v-if="normalizedMaterial.description" class="description">
+      {{ truncatedDescription }}
+    </p>
+
+    <div class="meta-list">
+      <div v-if="normalizedMaterial.teacherName" class="meta-row">
+        <span class="meta-label">Преподаватель</span>
+        <span class="meta-value">{{ normalizedMaterial.teacherName }}</span>
       </div>
-      
-      <div class="material-counts">
-        <div v-if="imagesCount > 0" class="count-item">
-          <div class="count-icon">🖼️</div>
-          <div class="count-text">
-            <span class="count-number">{{ imagesCount }}</span>
-            <span class="count-label">{{ imagesCount === 1 ? 'Изображение' : imagesCount < 5 ? 'Изображения' : 'Изображений' }}</span>
-          </div>
-        </div>
-        
-        <div v-if="filesCount > 0" class="count-item">
-          <div class="count-icon">📄</div>
-          <div class="count-text">
-            <span class="count-number">{{ filesCount }}</span>
-            <span class="count-label">{{ filesCount === 1 ? 'Файл' : filesCount < 5 ? 'Файла' : 'Файлов' }}</span>
-          </div>
-        </div>
+
+      <div class="meta-row">
+        <span class="meta-label">Курс</span>
+        <span class="meta-value">{{ normalizedMaterial.course || '—' }}</span>
       </div>
-      
-      <div class="material-actions">
-        <button class="btn btn-primary" @click="viewDetails">Просмотр деталей</button>
-        <button 
-          class="btn-favorite" 
-          :class="{ 'liked': isLiked }" 
-          @click="toggleLike"
-          :disabled="isLiking"
-          title="Добавить в избранное"
-        >
-          <span class="heart-icon">♥</span>
-        </button>
+
+      <div class="meta-row">
+        <span class="meta-label">Семестр</span>
+        <span class="meta-value">{{ normalizedMaterial.semester || '—' }}</span>
+      </div>
+
+      <div v-if="formattedDate" class="meta-row">
+        <span class="meta-label">Добавлено</span>
+        <span class="meta-value">{{ formattedDate }}</span>
       </div>
     </div>
-  </template>
-  
+
+    <div v-if="imagesCount > 0 || filesCount > 0" class="attachments">
+      <span v-if="filesCount > 0" class="attachment-pill">
+        <span class="attachment-icon">▤</span>
+        {{ filesCount }}
+        {{ filesCount === 1 ? 'файл' : filesCount < 5 ? 'файла' : 'файлов' }}
+      </span>
+
+      <span v-if="imagesCount > 0" class="attachment-pill attachment-pill--blue">
+        <span class="attachment-icon">□</span>
+        {{ imagesCount }}
+        {{ imagesCount === 1 ? 'изображение' : imagesCount < 5 ? 'изображения' : 'изображений' }}
+      </span>
+    </div>
+
+    <div class="card-actions">
+      <button
+        class="details-button"
+        type="button"
+        @click="viewDetails"
+      >
+        Открыть материал
+        <span>→</span>
+      </button>
+    </div>
+  </article>
+</template>
 
 <style scoped>
 .material-card {
-  background-color: white;
-  border-radius: 20px;
+  min-height: 330px;
+  display: flex;
+  flex-direction: column;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--color-border-dark, #202020);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-card, 0 8px 30px rgba(24, 24, 20, 0.06));
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .material-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 16px 38px rgba(24, 24, 20, 0.1);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.subject-block {
+  min-width: 0;
+}
+
+.subject-label {
+  margin-bottom: 7px;
+  color: var(--color-text-secondary, #64645f);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
 }
 
 .material-card h3 {
-  color: #2d3748;
-  margin-bottom: 12px;
+  margin: 0;
+  color: var(--color-text, #161616);
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.favorite-button {
+  width: 39px;
+  height: 39px;
+  flex: 0 0 39px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border, #d9d8d2);
+  border-radius: 50%;
+  background: var(--color-bg, #fbfaf6);
+  color: #6f6f69;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease,
+    color 0.18s ease;
+}
+
+.favorite-button:hover:not(:disabled) {
+  transform: scale(1.05);
+  background: var(--color-cream, #f4ead4);
+}
+
+.favorite-button.liked {
+  background: #f4dfdf;
+  color: #a64e4e;
+}
+
+.favorite-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .description {
-  margin-bottom: 16px;
-  color: #4a5568;
-  line-height: 1.5;
+  margin: 18px 0 20px;
+  color: var(--color-text-secondary, #64645f);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
-.material-info p {
-  margin-bottom: 8px;
-  color: #4a5568;
+.meta-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--color-border, #d9d8d2);
 }
 
-.material-counts {
+.meta-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.8fr) 1.2fr;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border, #d9d8d2);
+  font-size: 12px;
+}
+
+.meta-label {
+  color: var(--color-text-secondary, #64645f);
+}
+
+.meta-value {
+  color: var(--color-text, #161616);
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.attachments {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 16px;
 }
 
-.count-item {
-  display: flex;
+.attachment-pill {
+  display: inline-flex;
   align-items: center;
-  background-color: #f7fafc;
-  padding: 8px 16px;
-  border-radius: 6px;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--color-green, #dce8c6);
+  color: var(--color-text, #161616);
+  font-size: 10px;
+  font-weight: 800;
 }
 
-.count-icon {
-  font-size: 24px;
-  margin-right: 10px;
+.attachment-pill--blue {
+  background: var(--color-blue, #cbe8f2);
 }
 
-.count-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.count-number {
-  font-size: 18px;
-  font-weight: bold;
-  color: #2d3748;
-}
-
-.count-label {
+.attachment-icon {
   font-size: 14px;
-  color: #4a5568;
 }
 
-.material-actions {
-  margin-top: 16px;
-  display: flex;
+.card-actions {
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.details-button {
+  width: 100%;
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 10px;
+  gap: 18px;
+  padding: 0 15px;
+  border: 1px solid var(--color-border-dark, #202020);
+  border-radius: 999px;
+  background: var(--color-text, #161616);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
   cursor: pointer;
-  font-weight: bold;
-  transition: all 0.3s;
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
 }
 
-.btn-primary {
-  background-color: #4299e1;
-  color: white;
+.details-button:hover {
+  background: #30302d;
 }
 
-.btn-primary:hover {
-  background-color: #3182ce;
+.details-button span {
+  font-size: 17px;
 }
 
-.btn-favorite {
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-  transition: transform 0.2s, color 0.2s;
-  color: #cbd5e0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
+@media (max-width: 520px) {
+  .material-card {
+    min-height: auto;
+  }
 
-.btn-favorite:hover {
-  color: #fc8181;
-  transform: scale(1.1);
-}
+  .meta-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
 
-.btn-favorite.liked {
-  color: #fc8181;
+  .meta-value {
+    text-align: left;
+  }
 }
-
-.heart-icon {
-  display: block;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-</style> 
+</style>

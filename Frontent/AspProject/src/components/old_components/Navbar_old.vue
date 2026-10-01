@@ -1,731 +1,369 @@
 <script>
 import { defineComponent } from 'vue';
-
 import axios from 'axios';
-
 import { API_ENDPOINTS } from '@/config.js';
-
 import { jwtDecode } from 'jwt-decode';
-
 import ErrorHandler from './ErrorHandler.vue';
-
 import SuccessHandler from './SuccessHandler.vue';
 
-
-
 export default defineComponent({
-
   name: 'Navbar',
-
   components: {
-
     ErrorHandler,
-
     SuccessHandler
-
   },
-
   data: () => ({
-
     isUserMenuOpen: false,
-
     showRegisterModal: false,
-
     showLoginModal: false,
-
     isLoggedIn: false,
-
     registerForm: {
-
       firstName: '',
-
       lastName: '',
-
       university: '',
-
       institute: '',
-
       login: '',
-
       password: '',
-
       confirmPassword: ''
-
     },
-
     loginForm: {
-
       login: '',
-
       password: ''
-
     },
-
     validationErrors: {
-
       firstName: '',
-
       lastName: '',
-
       university: '',
-
       institute: '',
-
       login: '',
-
       password: '',
-
       confirmPassword: ''
-
     },
-
     userName: '',
-
     userLastName: ''
-
   }),
-
   created() {
-
     // Check for existing token to get user info
-
     const token = localStorage.getItem('AuthToken');
-
     if (token) {
-
       this.isLoggedIn = true;
-
       try {
-
         const decodedToken = jwtDecode(token);
-
         if (decodedToken.FirstName) {
-
           console.log(decodedToken);
-
           this.userName = decodedToken.FirstName;
-
           this.userLastName = decodedToken.LastName;
-
         }
-
       } catch (error) {
-
         console.error('Error decoding token for user info:', error);
-
       }
-
     }
-
   },
-
   computed: {
-
     currentRoute() {
-
       return this.$route.path;
-
     }
-
   },
-
   methods: {
-
     handleNavigation(route) {
-
       if (route === '/materials') {
-
         this.$router.push(route);
-
         return;
-
       }
-
-
-
+      
       if (!this.isLoggedIn) {
-
         this.$notify.error('Для доступа к этой странице необходимо войти в аккаунт или зарегистрироваться');
-
         return;
-
       }
-
-
-
+      
       this.$router.push(route);
-
     },
-
     toggleUserMenu() {
-
       this.isUserMenuOpen = !this.isUserMenuOpen;
-
     },
-
     openRegisterModal() {
-
       this.showRegisterModal = true;
-
       this.isUserMenuOpen = false;
-
     },
-
     closeRegisterModal() {
-
       this.showRegisterModal = false;
-
       this.registerForm = {
-
         firstName: '',
-
         lastName: '',
-
         university: '',
-
         institute: '',
-
         login: '',
-
         password: '',
-
         confirmPassword: ''
-
       };
-
       this.validationErrors = {
-
         firstName: '',
-
         lastName: '',
-
         university: '',
-
         institute: '',
-
         login: '',
-
         password: '',
-
         confirmPassword: ''
-
       };
-
     },
-
     openLoginModal() {
-
       this.showLoginModal = true;
-
       this.isUserMenuOpen = false;
-
     },
-
     closeLoginModal() {
-
       this.showLoginModal = false;
-
       this.loginForm = { login: '', password: '' };
-
     },
-
     validateEmail(email) {
-
-      return /^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email);
-
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     },
-
     validatePassword(password) {
-
       return {
-
         hasUppercase: /[A-Z]/.test(password),
-
         hasLowercase: /[a-z]/.test(password),
-
         hasNumber: /[0-9]/.test(password),
-
         hasSpecial: /[^a-zA-Z0-9]/.test(password),
-
         isLongEnough: password.length >= 8
-
       };
-
     },
-
     validateName(name) {
-
       return /^[А-ЯЁA-Z][а-яёa-z-]+$/.test(name);
-
     },
-
     validateForm() {
-
       let isValid = true;
-
       this.validationErrors = {
-
         firstName: '',
-
         lastName: '',
-
         university: '',
-
         institute: '',
-
         login: '',
-
         password: '',
-
         confirmPassword: ''
-
       };
-
-
-
+      
       if (!this.registerForm.login) {
-
         this.validationErrors.login = "Электронная почта обязательна";
-
         isValid = false;
-
       } else if (this.registerForm.login.length < 3 || this.registerForm.login.length > 50) {
-
         this.validationErrors.login = "Длина электронной почты должна быть от 3 до 50 символов";
-
         isValid = false;
-
       } else if (!this.validateEmail(this.registerForm.login)) {
-
         this.validationErrors.login = "Некорректный адрес электронной почты";
-
         isValid = false;
-
       }
-
-
-
+      
       if (!this.registerForm.password) {
-
         this.validationErrors.password = "Пароль обязателен";
-
         isValid = false;
-
       } else {
-
         const pwdVal = this.validatePassword(this.registerForm.password);
-
         if (!pwdVal.isLongEnough) {
-
           this.validationErrors.password = "Пароль должен быть не менее 8 символов";
-
         } else if (!pwdVal.hasUppercase) {
-
           this.validationErrors.password = "Пароль должен содержать хотя бы одну заглавную букву";
-
         } else if (!pwdVal.hasLowercase) {
-
           this.validationErrors.password = "Пароль должен содержать хотя бы одну строчную букву";
-
         } else if (!pwdVal.hasNumber) {
-
           this.validationErrors.password = "Пароль должен содержать хотя бы одну цифру";
-
         } else if (!pwdVal.hasSpecial) {
-
           this.validationErrors.password = "Пароль должен содержать хотя бы один специальный символ";
-
         }
-
         if (this.validationErrors.password) isValid = false;
-
       }
-
-
-
+      
       if (this.registerForm.password !== this.registerForm.confirmPassword) {
-
         this.validationErrors.confirmPassword = "Пароли не совпадают";
-
         isValid = false;
-
       }
-
-
-
+      
       if (!this.registerForm.firstName) {
-
         this.validationErrors.firstName = "Имя обязательно";
-
         isValid = false;
-
       } else if (this.registerForm.firstName.length < 2 || this.registerForm.firstName.length > 50) {
-
         this.validationErrors.firstName = "Длина имени должна быть от 2 до 50 символов";
-
         isValid = false;
-
       } else if (!this.validateName(this.registerForm.firstName)) {
-
         this.validationErrors.firstName = "Имя должно начинаться с заглавной буквы и содержать только буквы и дефис";
-
         isValid = false;
-
       }
-
-
-
+      
       if (this.registerForm.lastName) {
-
         if (this.registerForm.lastName.length < 2 || this.registerForm.lastName.length > 50) {
-
           this.validationErrors.lastName = "Длина фамилии должна быть от 2 до 50 символов";
-
           isValid = false;
-
         } else if (!this.validateName(this.registerForm.lastName)) {
-
           this.validationErrors.lastName = "Фамилия должна начинаться с заглавной буквы и содержать только буквы и дефис";
-
           isValid = false;
-
         }
-
       }
-
-
-
+      
       if (!this.registerForm.university) {
-
         this.validationErrors.university = "Университет обязателен";
-
         isValid = false;
-
       }
-
-
-
+      
       if (!this.registerForm.institute) {
-
         this.validationErrors.institute = "Институт обязателен";
-
         isValid = false;
-
       }
-
-
-
+      
       return isValid;
-
     },
-
     async registerUser() {
-
       if (!this.validateForm()) return;
-
-
-
+      
       try {
-
         const response = await axios.post(API_ENDPOINTS.REGISTER, {
-
           Login: this.registerForm.login,
-
           Password: this.registerForm.password,
-
           FirstName: this.registerForm.firstName,
-
           LastName: this.registerForm.lastName,
-
           University: this.registerForm.university,
-
           Institute: this.registerForm.institute
-
         });
-
-
-
+        
         console.log('Registration response:', response.data);
-
         this.$notify.success(response.data);
-
-
-
+        
         const userEmail = this.registerForm.login;
-
         this.closeRegisterModal();
-
         this.loginForm.login = userEmail;
-
         this.openLoginModal();
-
       } catch (error) {
-
         console.error('Registration error:', error);
-
-
-
+        
         if (error.response) {
-
           const status = error.response.status;
-
-
-
+          
           if (status === 400) {
-
             const validationErrors = error.response.data;
-
             let errorMessage = 'Ошибки валидации:\n';
-
-
-
+            
             if (Array.isArray(validationErrors)) {
-
               validationErrors.forEach(err => {
-
                 errorMessage += `- ${err.propertyName}: ${err.errorMessage}\n`;
-
               });
-
             } else {
-
               errorMessage = 'Ошибка валидации данных';
-
             }
-
-
-
+            
             this.$notify.error(errorMessage);
-
           } else if (status === 409) {
-
             this.$notify.error(error.response.data || 'Пользователь с такой почтой уже существует');
-
           } else if (status >= 500) {
-
             this.$notify.error(error.response.data || 'Ошибка при регистрации пользователя. Попробуйте позже.');
-
           } else {
-
             this.$notify.error('Ошибка при регистрации: ' + (error.response.data || error.message));
-
           }
-
         } else {
-
           this.$notify.error('Ошибка соединения с сервером. Пожалуйста, проверьте подключение к интернету.');
-
         }
-
       }
-
     },
-
     logoutUser() {
-
       // Send logout request to the server
-
       axios.post(API_ENDPOINTS.LOGOUT, {}, {
-
         withCredentials: true
-
       })
-
       .then(response => {
-
         console.log('Logout successful:', response.data);
-
       })
-
       .catch(error => {
-
         console.error('Logout error:', error);
-
       })
-
       .finally(() => {
-
         // Clear the token from localStorage
-
         localStorage.removeItem('AuthToken');
-
-
-
+        
         // Clear cookies related to authentication
-
         document.cookie.split(";").forEach(function(c) {
-
-          document.cookie = c.replace(/^ +/, "").replace(/=.\*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
-
-
-
+        
         // Reset user data
-
         this.userName = '';
-
         this.userLastName = '';
-
         this.isLoggedIn = false;
-
         this.isUserMenuOpen = false;
-
-
-
+        
         // Inform the user
-
         this.$notify.success('Вы успешно вышли из системы');
-
-
-
+        
         // Redirect to materials page instead of reloading
-
         this.$router.push('/materials');
-
       });
-
     },
-
     loginUser() {
-
       if (!this.loginForm.login || !this.loginForm.password) {
-
         this.$notify.error('Пожалуйста, заполните все поля');
-
         return;
-
       }
-
-
-
+      
       axios.post(API_ENDPOINTS.LOGIN, {
-
         Login: this.loginForm.login,
-
         Password: this.loginForm.password
-
       })
-
       .then(response => {
-
         console.log(response.data);
-
         if (response.data && response.data.token) {
-
           localStorage.setItem("AuthToken", response.data.token);
-
           console.log('Token stored:', response.data.token);
-
-
-
+          
           try {
-
             const decodedToken = jwtDecode(response.data.token);
-
             console.log(decodedToken);
-
             if (decodedToken.FirstName) {
-
               console.log(decodedToken.FirstName);
-
               this.userName = decodedToken.FirstName;
-
               this.userLastName = decodedToken.LastName;
-
             }
-
           } catch (error) {
-
             console.error('Error decoding token for user info:', error);
-
           }
-
-
-
+          
           this.isLoggedIn = true;
-
           this.closeLoginModal();
-
           console.log(document.cookie);
-
           // The token refresh will be handled automatically by the global interceptor
-
           this.$notify.success('Вы успешно вошли в систему');
-
           // Redirect to materials page instead of reloading
-
           this.$router.push('/materials');
-
         }
-
       })
-
       .catch(error => {
-
         console.error('Login error:', error);
-
-
-
+        
         if (error.response) {
-
           const status = error.response.status;
-
-
-
+          
           if (status === 400) {
-
             const validationErrors = error.response.data;
-
             let errorMessage = 'Ошибки валидации:\n';
-
-
-
+            
             if (Array.isArray(validationErrors)) {
-
               validationErrors.forEach(err => {
-
                 errorMessage += `- ${err.propertyName}: ${err.errorMessage}\n`;
-
               });
-
             } else {
-
               errorMessage = error.response.data || 'Ошибка валидации данных';
-
             }
+            
             this.$notify.error(errorMessage);
-
           } else if (status === 401) {
-
             this.$notify.error('Неверный пароль');
-
           } else if (status === 404) {
-
             this.$notify.error(error.response.data || 'Пользователь не найден');
-
           } else if (status >= 500) {
-
             this.$notify.error(error.response.data || 'Ошибка сервера. Попробуйте позже.');
-
           } else {
-
             this.$notify.error('Ошибка при входе: ' + (error.response.data || error.message));
-
           }
-
         } else {
-
           this.$notify.error('Ошибка соединения с сервером. Пожалуйста, проверьте подключение к интернету.');
-
         }
-
       });
-
     }
-
   }
-
 });
 </script>
 
@@ -733,282 +371,174 @@ export default defineComponent({
   <div>
     <ErrorHandler ref="errorHandler" />
     <SuccessHandler ref="successHandler" />
-
-    <header class="app-header">
-      <div class="header-inner">
-        <div class="brand" @click="handleNavigation('/materials')">
-          examarchive<span>.</span>
+    <!-- Navigation Bar with Frosted Glass Effect -->
+    <div class="navbar">
+      <div class="navbar-content">
+        <div class="logo">
+          <img src="/ChatGPT Image May 4, 2025, 02_01_20 AM — копия.png" alt="Архив Экзаменов Логотип" />
         </div>
-
-        <nav class="main-nav" aria-label="Основная навигация">
-          <a
-            @click="handleNavigation('/materials')"
-            class="nav-link"
-            :class="{ active: currentRoute.startsWith('/materials') }"
-          >
-            Библиотека
-          </a>
-
-          <a
-            @click="handleNavigation('/exam')"
-            class="nav-link"
-            :class="{ active: currentRoute === '/exam' }"
-          >
-            Подготовка к экзамену
-          </a>
-
-          <a
-            @click="handleNavigation('/favorite')"
-            class="nav-link"
-            :class="{ active: currentRoute === '/favorite' }"
-          >
-            Избранное
-          </a>
+        <nav>
+          <a @click="handleNavigation('/materials')" class="nav-link" :class="{ active: currentRoute === '/materials' }">Материалы</a>
+          <a @click="handleNavigation('/adding')" class="nav-link" :class="{ active: currentRoute === '/adding' }">Добавить Материал</a>
+          <a @click="handleNavigation('/mypage')" class="nav-link" :class="{ active: currentRoute === '/mypage' }">Моя Страница</a>
+          <a @click="handleNavigation('/exam')" class="nav-link" :class="{ active: currentRoute === '/exam' }">Имитация Экзамена</a>
+          <a @click="handleNavigation('/favorite')" class="nav-link" :class="{ active: currentRoute === '/favorite' }">Избранное</a>
         </nav>
-
-        <div class="header-actions">
-          <button
-            class="add-material-btn"
-            type="button"
-            @click="handleNavigation('/adding')"
-          >
-            <span class="plus">+</span>
-            <span>Добавить материал</span>
-          </button>
-
-          <div class="user-section">
-            <button
-              class="profile-button"
-              type="button"
-              @click="toggleUserMenu"
-              :aria-expanded="isUserMenuOpen ? 'true' : 'false'"
-            >
-              <span class="user-copy" v-if="isLoggedIn && (userName || userLastName)">
-                <span class="user-name">{{ userName }} {{ userLastName }}</span>
-                <span class="user-caption">Профиль</span>
-              </span>
-
-              <span v-else class="user-copy">
-                <span class="user-name">Аккаунт</span>
-                <span class="user-caption">Войти или зарегистрироваться</span>
-              </span>
-
-              <span class="avatar" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="img">
-                  <path
-                    d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"
-                  />
-                </svg>
-              </span>
-            </button>
-
-            <div v-if="isUserMenuOpen" class="user-dropdown">
-              <template v-if="isLoggedIn">
-                <div
-                  class="user-dropdown-item"
-                  @click="handleNavigation('/mypage'); isUserMenuOpen = false"
-                >
-                  Моя страница
-                </div>
-                <div class="user-dropdown-divider"></div>
-                <div class="user-dropdown-item danger" @click="logoutUser">
-                  Выйти
-                </div>
-              </template>
-
-              <template v-else>
-                <div class="user-dropdown-item" @click="openLoginModal">
-                  Войти
-                </div>
-                <div class="user-dropdown-item" @click="openRegisterModal">
-                  Зарегистрироваться
-                </div>
-              </template>
-            </div>
+        <div class="user-section">
+          <span class="user-name">{{userName}} {{ userLastName }} </span>
+          <div class="avatar" @click="toggleUserMenu">👤</div>
+          
+          <!-- User dropdown menu -->
+          <div v-if="isUserMenuOpen" class="user-dropdown">
+            <template v-if="isLoggedIn">
+              <div class="user-dropdown-item" @click="logoutUser">Выйти</div>
+            </template>
+            <template v-else>
+              <div class="user-dropdown-item" @click="openRegisterModal">Зарегистрироваться</div>
+              <div class="user-dropdown-item" @click="openLoginModal">Войти</div>
+            </template>
           </div>
         </div>
       </div>
-    </header>
-
+    </div>
+    
+    <!-- Add a spacer to prevent content from being hidden under the navbar -->
     <div class="navbar-spacer"></div>
-
+    
     <!-- Registration Modal -->
-    <div v-if="showRegisterModal" class="modal-overlay" @click.self="closeRegisterModal">
+    <div v-if="showRegisterModal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
-          <div>
-            <p class="modal-eyebrow">EXAMARCHIVE</p>
-            <h2>Регистрация</h2>
-          </div>
-          <button class="close-btn" type="button" @click="closeRegisterModal">&times;</button>
+          <h2>Регистрация</h2>
+          <button class="close-btn" @click="closeRegisterModal">&times;</button>
         </div>
-
         <div class="modal-body">
           <form @submit.prevent="registerUser">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="firstName">Имя</label>
-                <input
-                  type="text"
-                  id="firstName"
-                  v-model="registerForm.firstName"
-                  placeholder="Введите имя"
-                  :class="{ 'input-error': validationErrors.firstName }"
-                  required
-                />
-                <div v-if="validationErrors.firstName" class="error-message">
-                  {{ validationErrors.firstName }}
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="lastName">Фамилия</label>
-                <input
-                  type="text"
-                  id="lastName"
-                  v-model="registerForm.lastName"
-                  placeholder="Введите фамилию"
-                  :class="{ 'input-error': validationErrors.lastName }"
-                  required
-                />
-                <div v-if="validationErrors.lastName" class="error-message">
-                  {{ validationErrors.lastName }}
-                </div>
-              </div>
+            <div class="form-group">
+              <label for="firstName">Имя</label>
+              <input 
+                type="text" 
+                id="firstName" 
+                v-model="registerForm.firstName" 
+                placeholder="Введите имя"
+                :class="{ 'input-error': validationErrors.firstName }"
+                required
+              />
+              <div v-if="validationErrors.firstName" class="error-message">{{ validationErrors.firstName }}</div>
             </div>
-
+            <div class="form-group">
+              <label for="lastName">Фамилия</label>
+              <input 
+                type="text" 
+                id="lastName" 
+                v-model="registerForm.lastName" 
+                placeholder="Введите фамилию"
+                :class="{ 'input-error': validationErrors.lastName }"
+                required
+              />
+              <div v-if="validationErrors.lastName" class="error-message">{{ validationErrors.lastName }}</div>
+            </div>
             <div class="form-group">
               <label for="university">Университет</label>
-              <input
-                type="text"
-                id="university"
-                v-model="registerForm.university"
-                placeholder="Например, КФУ"
+              <input 
+                type="text" 
+                id="university" 
+                v-model="registerForm.university" 
+                placeholder="Введите университет"
                 :class="{ 'input-error': validationErrors.university }"
                 required
               />
-              <div v-if="validationErrors.university" class="error-message">
-                {{ validationErrors.university }}
-              </div>
+              <div v-if="validationErrors.university" class="error-message">{{ validationErrors.university }}</div>
             </div>
-
             <div class="form-group">
               <label for="institute">Институт</label>
-              <input
-                type="text"
-                id="institute"
-                v-model="registerForm.institute"
-                placeholder="Например, ИТИС"
+              <input 
+                type="text" 
+                id="institute" 
+                v-model="registerForm.institute" 
+                placeholder="Введите институт"
                 :class="{ 'input-error': validationErrors.institute }"
                 required
               />
-              <div v-if="validationErrors.institute" class="error-message">
-                {{ validationErrors.institute }}
-              </div>
+              <div v-if="validationErrors.institute" class="error-message">{{ validationErrors.institute }}</div>
             </div>
-
             <div class="form-group">
               <label for="login">Электронная почта</label>
-              <input
-                type="email"
-                id="login"
-                v-model="registerForm.login"
-                placeholder="name@example.com"
+              <input 
+                type="email" 
+                id="login" 
+                v-model="registerForm.login" 
+                placeholder="Введите электронную почту"
                 :class="{ 'input-error': validationErrors.login }"
                 required
               />
-              <div v-if="validationErrors.login" class="error-message">
-                {{ validationErrors.login }}
-              </div>
+              <div v-if="validationErrors.login" class="error-message">{{ validationErrors.login }}</div>
             </div>
-
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="password">Пароль</label>
-                <input
-                  type="password"
-                  id="password"
-                  v-model="registerForm.password"
-                  placeholder="Введите пароль"
-                  :class="{ 'input-error': validationErrors.password }"
-                  required
-                />
-                <div v-if="validationErrors.password" class="error-message">
-                  {{ validationErrors.password }}
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="confirmPassword">Повторите пароль</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  v-model="registerForm.confirmPassword"
-                  placeholder="Повторите пароль"
-                  :class="{ 'input-error': validationErrors.confirmPassword }"
-                  required
-                />
-                <div v-if="validationErrors.confirmPassword" class="error-message">
-                  {{ validationErrors.confirmPassword }}
-                </div>
-              </div>
+            <div class="form-group">
+              <label for="password">Пароль</label>
+              <input 
+                type="password" 
+                id="password" 
+                v-model="registerForm.password" 
+                placeholder="Введите пароль"
+                :class="{ 'input-error': validationErrors.password }"
+                required
+              />
+              <div v-if="validationErrors.password" class="error-message">{{ validationErrors.password }}</div>
             </div>
-
+            <div class="form-group">
+              <label for="confirmPassword">Подтвердите пароль</label>
+              <input 
+                type="password" 
+                id="confirmPassword" 
+                v-model="registerForm.confirmPassword" 
+                placeholder="Подтвердите пароль"
+                :class="{ 'input-error': validationErrors.confirmPassword }"
+                required
+              />
+              <div v-if="validationErrors.confirmPassword" class="error-message">{{ validationErrors.confirmPassword }}</div>
+            </div>
             <div class="form-actions">
-              <button type="button" class="btn-secondary" @click="closeRegisterModal">
-                Отмена
-              </button>
-              <button type="submit" class="btn-primary">
-                Зарегистрироваться
-              </button>
+              <button type="submit" class="btn-primary">Зарегистрироваться</button>
+              <button type="button" class="btn-secondary" @click="closeRegisterModal">Отмена</button>
             </div>
           </form>
         </div>
       </div>
     </div>
-
+    
     <!-- Login Modal -->
-    <div v-if="showLoginModal" class="modal-overlay" @click.self="closeLoginModal">
-      <div class="modal-content modal-content--small">
+    <div v-if="showLoginModal" class="modal-overlay">
+      <div class="modal-content">
         <div class="modal-header">
-          <div>
-            <p class="modal-eyebrow">EXAMARCHIVE</p>
-            <h2>Вход</h2>
-          </div>
-          <button class="close-btn" type="button" @click="closeLoginModal">&times;</button>
+          <h2>Вход</h2>
+          <button class="close-btn" @click="closeLoginModal">&times;</button>
         </div>
-
         <div class="modal-body">
           <form @submit.prevent="loginUser">
             <div class="form-group">
-              <label for="loginUsername">Электронная почта</label>
-              <input
-                type="text"
-                id="loginUsername"
-                v-model="loginForm.login"
-                placeholder="name@example.com"
+              <label for="loginUsername">Логин</label>
+              <input 
+                type="text" 
+                id="loginUsername" 
+                v-model="loginForm.login" 
+                placeholder="Введите логин"
                 required
               />
             </div>
-
             <div class="form-group">
               <label for="loginPassword">Пароль</label>
-              <input
-                type="password"
-                id="loginPassword"
-                v-model="loginForm.password"
+              <input 
+                type="password" 
+                id="loginPassword" 
+                v-model="loginForm.password" 
                 placeholder="Введите пароль"
                 required
               />
             </div>
-
             <div class="form-actions">
-              <button type="button" class="btn-secondary" @click="closeLoginModal">
-                Отмена
-              </button>
-              <button type="submit" class="btn-primary">
-                Войти
-              </button>
+              <button type="submit" class="btn-primary">Войти</button>
+              <button type="button" class="btn-secondary" @click="closeLoginModal">Отмена</button>
             </div>
           </form>
         </div>
@@ -1018,456 +548,276 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.app-header {
+/* Navigation Bar Styles */
+.navbar {
   position: fixed;
-  inset: 0 0 auto 0;
+  top: 0;
+  left: 0;
+  width: 100%;
   z-index: 1000;
-  height: 76px;
-  background: rgba(251, 250, 246, 0.94);
-  border-bottom: 1px solid var(--color-border, #d9d8d2);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(203, 213, 224, 0.5);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.header-inner {
-  width: min(calc(100% - 64px), var(--page-width, 1440px));
-  height: 100%;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 42px;
-}
-
-.brand {
-  font-size: 26px;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.055em;
-  color: var(--color-text, #161616);
-  cursor: pointer;
-  user-select: none;
-}
-
-.brand span {
-  color: #7ea992;
-}
-
-.main-nav {
+.navbar-content {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  padding: 0 2rem;
+  height: 70px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+  
+.logo {
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: #3182ce;
+  display: flex;
+  align-items: center;
+  margin-left: -15px;
+}
+
+.logo img {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+nav {
+  display: flex;
+  gap: 1.5rem;
 }
 
 .nav-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill, 999px);
-  color: var(--color-text-secondary, #64645f);
-  font-size: 14px;
-  font-weight: 600;
   text-decoration: none;
-  cursor: pointer;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease;
+  color: #4a5568;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  position: relative;
+  transition: color 0.3s;
 }
 
-.nav-link:hover {
-  color: var(--color-text, #161616);
-  background: rgba(220, 232, 198, 0.5);
-}
-
+.nav-link:hover,
 .nav-link.active {
-  color: var(--color-text, #161616);
-  background: var(--color-green, #dce8c6);
+  color: #3182ce;
+  cursor: pointer;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.add-material-btn {
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 16px;
-  border: 1px solid var(--color-border-dark, #202020);
-  border-radius: var(--radius-pill, 999px);
-  background: var(--color-text, #161616);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  transition:
-    transform 0.18s ease,
-    background-color 0.18s ease;
-}
-
-.add-material-btn:hover {
-  transform: translateY(-1px);
-  background: #30302d;
-}
-
-.plus {
-  font-size: 20px;
-  line-height: 1;
-  margin-top: -2px;
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #3182ce;
+  border-radius: 2px;
 }
 
 .user-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   position: relative;
 }
 
-.profile-button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 3px 3px 10px;
-  border: 0;
-  border-radius: var(--radius-pill, 999px);
-  background: transparent;
-  color: inherit;
-}
-
-.profile-button:hover {
-  background: rgba(203, 232, 242, 0.45);
-}
-
-.user-copy {
-  max-width: 160px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  line-height: 1.15;
-}
-
 .user-name {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text, #161616);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.user-caption {
-  margin-top: 3px;
-  color: var(--color-text-secondary, #64645f);
-  font-size: 10px;
   font-weight: 500;
-  white-space: nowrap;
+  color: #4a5568;
 }
 
 .avatar {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--color-border-dark, #202020);
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--color-blue, #cbe8f2);
-}
-
-.avatar svg {
-  width: 20px;
-  height: 20px;
-  fill: var(--color-text, #161616);
-}
-
-.user-dropdown {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  min-width: 210px;
-  padding: 8px;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border-dark, #202020);
-  border-radius: 14px;
-  box-shadow: var(--shadow-card, 0 8px 30px rgba(24, 24, 20, 0.06));
-}
-
-.user-dropdown-item {
-  padding: 11px 12px;
-  border-radius: 9px;
-  color: var(--color-text, #161616);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.user-dropdown-item:hover {
-  background: var(--color-cream, #f4ead4);
-}
-
-.user-dropdown-item.danger:hover {
-  background: #f7e4e1;
-  color: #8f2d25;
-}
-
-.user-dropdown-divider {
-  height: 1px;
-  margin: 5px 4px;
-  background: var(--color-border, #d9d8d2);
-}
-
-.navbar-spacer {
-  height: 76px;
-}
-
-/* Modals */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
+  background-color: #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background: rgba(20, 20, 18, 0.38);
-  backdrop-filter: blur(3px);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.avatar:hover {
+  background-color: #cbd5e0;
+}
+
+.navbar-spacer {
+  height: 70px;
+}
+
+/* User Dropdown Menu */
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  margin-top: 8px;
+  min-width: 180px;
+  z-index: 1001;
+}
+
+.user-dropdown-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #4a5568;
+  transition: background-color 0.3s;
+}
+
+.user-dropdown-item:hover {
+  background-color: #f7fafc;
+  color: #3182ce;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
 }
 
 .modal-content {
-  width: min(680px, 100%);
-  max-height: calc(100vh - 48px);
+  background: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
   overflow-y: auto;
-  background: var(--color-bg, #fbfaf6);
-  border: 1px solid var(--color-border-dark, #202020);
-  border-radius: var(--radius-lg, 24px);
-  box-shadow: 0 24px 80px rgba(18, 18, 16, 0.18);
-}
-
-.modal-content--small {
-  width: min(470px, 100%);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 28px 30px 20px;
-  border-bottom: 1px solid var(--color-border, #d9d8d2);
-}
-
-.modal-eyebrow {
-  margin: 0 0 5px;
-  color: var(--color-text-secondary, #64645f);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: var(--color-text, #161616);
-  font-size: 30px;
-  line-height: 1;
-  letter-spacing: -0.045em;
+  color: #2d3748;
+  font-size: 20px;
 }
 
 .close-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 1px solid var(--color-border, #d9d8d2);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-text, #161616);
+  background: none;
+  border: none;
   font-size: 24px;
-  line-height: 1;
+  color: #a0aec0;
+  cursor: pointer;
+  transition: color 0.3s;
 }
 
 .close-btn:hover {
-  background: var(--color-cream, #f4ead4);
+  color: #718096;
 }
 
 .modal-body {
-  padding: 26px 30px 30px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  padding: 24px;
 }
 
 .form-group {
-  margin-bottom: 17px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 7px;
-  color: var(--color-text, #161616);
-  font-size: 13px;
-  font-weight: 700;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #4a5568;
 }
 
 .form-group input {
   width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border, #d9d8d2);
-  border-radius: 12px;
-  outline: none;
-  background: var(--color-surface, #fff);
-  color: var(--color-text, #161616);
-  font-size: 14px;
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.form-group input::placeholder {
-  color: #9a9a94;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .form-group input:focus {
-  border-color: #7ca9ba;
-  box-shadow: 0 0 0 3px rgba(158, 211, 231, 0.3);
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 25px;
-}
-
-.btn-primary,
-.btn-secondary {
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: var(--radius-pill, 999px);
-  font-size: 13px;
-  font-weight: 700;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .btn-primary {
-  border: 1px solid var(--color-border-dark, #202020);
-  background: var(--color-text, #161616);
-  color: #fff;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 .btn-primary:hover {
-  background: #30302d;
+  background-color: #2b6cb0;
 }
 
 .btn-secondary {
-  border: 1px solid var(--color-border, #d9d8d2);
-  background: var(--color-surface, #fff);
-  color: var(--color-text, #161616);
+  background-color: #e2e8f0;
+  color: #4a5568;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 .btn-secondary:hover {
-  background: var(--color-cream, #f4ead4);
+  background-color: #cbd5e0;
 }
 
+/* Form Validation Styles */
 .input-error {
-  border-color: #bf4b42 !important;
-  box-shadow: 0 0 0 2px rgba(191, 75, 66, 0.12) !important;
+  border-color: #e53e3e !important;
+  box-shadow: 0 0 0 1px #e53e3e !important;
 }
 
 .error-message {
-  margin-top: 5px;
-  color: #a73831;
-  font-size: 12px;
-  line-height: 1.35;
+  color: #e53e3e;
+  font-size: 0.875rem;
+  margin-top: 4px;
 }
 
-@media (max-width: 1100px) {
-  .header-inner {
-    width: min(calc(100% - 36px), var(--page-width, 1440px));
-    gap: 20px;
-  }
-
-  .main-nav {
-    gap: 2px;
-  }
-
-  .nav-link {
-    padding: 0 10px;
-  }
-
-  .user-copy {
-    display: none;
-  }
+/* Reset validation errors when closing modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
 }
-
-@media (max-width: 820px) {
-  .app-header,
-  .navbar-spacer {
-    height: 68px;
-  }
-
-  .header-inner {
-    grid-template-columns: auto 1fr;
-  }
-
-  .main-nav {
-    display: none;
-  }
-
-  .header-actions {
-    justify-self: end;
-  }
-
-  .add-material-btn span:not(.plus) {
-    display: none;
-  }
-
-  .add-material-btn {
-    width: 40px;
-    min-height: 40px;
-    justify-content: center;
-    padding: 0;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-}
-
-@media (max-width: 520px) {
-  .header-inner {
-    width: calc(100% - 24px);
-  }
-
-  .brand {
-    font-size: 22px;
-  }
-
-  .modal-overlay {
-    padding: 12px;
-  }
-
-  .modal-header {
-    padding: 22px 20px 17px;
-  }
-
-  .modal-body {
-    padding: 20px;
-  }
-
-  .form-actions {
-    flex-direction: column-reverse;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-  }
-}
-</style>
+</style> 

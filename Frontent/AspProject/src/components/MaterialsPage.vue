@@ -90,10 +90,10 @@ export default defineComponent({
       try {
         const searchUrl = `${API_ENDPOINTS.SEARCH_BY_KEYWORD}/${encodeURIComponent(this.keyword.trim())}`;
         console.log('Searching by keyword at URL:', searchUrl);
-        
+
         const response = await axios.get(searchUrl);
         console.log('Search response:', response.data);
-        
+
         this.materials = response.data.map(material => ({
           id: material.id || material.Id,
           description: material.description || material.Description,
@@ -105,10 +105,9 @@ export default defineComponent({
           imagesNameUrl: material.imagesNameUrl || material.ImagesNameUrl || {},
           fileNameUrl: material.fileNameUrl || material.FileNameUrl || {}
         }));
-        
+
         this.filteredMaterials = [...this.materials];
-        
-        // Set message if no results found
+
         if (this.materials.length === 0) {
           this.noResultsMessage = `По запросу "${this.keyword}" ничего не найдено.`;
         }
@@ -128,13 +127,17 @@ export default defineComponent({
     },
     updateAvailableSubjects() {
       const course = this.filters.course;
-      this.availableSubjects = course && this.selectionData[course] ? 
-        Object.keys(this.selectionData[course].subjects || {}) : [];
+      this.availableSubjects = course && this.selectionData[course]
+        ? Object.keys(this.selectionData[course].subjects || {})
+        : [];
     },
     updateAvailableTeachers() {
       const { course, subject } = this.filters;
-      this.availableTeachers = (course && subject && 
-        this.selectionData[course]?.subjects[subject]?.teachers) || [];
+      this.availableTeachers = (
+        course &&
+        subject &&
+        this.selectionData[course]?.subjects[subject]?.teachers
+      ) || [];
     },
     toggleCustomSubject() {
       this.customSubject = !this.customSubject;
@@ -145,7 +148,12 @@ export default defineComponent({
       if (!this.customTeacher) this.filters.teacherName = '';
     },
     resetFilters() {
-      this.filters = { course: null, subject: '', teacherName: '', semester: null };
+      this.filters = {
+        course: null,
+        subject: '',
+        teacherName: '',
+        semester: null
+      };
       this.customSubject = false;
       this.customTeacher = false;
       this.noResultsMessage = '';
@@ -175,10 +183,9 @@ export default defineComponent({
           imagesNameUrl: material.imagesNameUrl || material.ImagesNameUrl || {},
           fileNameUrl: material.fileNameUrl || material.FileNameUrl || {}
         }));
-        
+
         this.filteredMaterials = [...this.materials];
-        
-        // Set message if no results found with filters
+
         if (this.materials.length === 0) {
           this.noResultsMessage = 'По вашему запросу ничего не найдено.';
         }
@@ -193,11 +200,11 @@ export default defineComponent({
     },
     applyFilters() {
       const { course, subject, teacherName, semester } = this.filters;
-      
+
       this.filteredMaterials = this.materials.filter(material => {
-        return (!course || material.course === course) && 
-               (!subject || material.subject === subject) && 
-               (!teacherName || material.teacherName === teacherName) && 
+        return (!course || material.course === course) &&
+               (!subject || material.subject === subject) &&
+               (!teacherName || material.teacherName === teacherName) &&
                (!semester || material.semester === semester);
       });
     },
@@ -209,240 +216,599 @@ export default defineComponent({
 </script>
 
 <template>
-  <div class="materials-page">
-    <div class="tittle">
-      <h2>Доступные материалы</h2>
-    </div>
-    
-    <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
-    
-    <div class="search-container">
-      <div class="search-input-container">
-        <input 
-          type="text" 
-          v-model="keyword" 
-          placeholder="Поиск материалов по ключевому слову..."
-          class="search-input"
-          @keyup.enter="searchByKeyword"
-        />
-        <button 
-          v-if="keyword" 
-          @click="clearKeywordSearch" 
-          class="clear-search-btn"
-          title="Очистить поиск"
-        >×</button>
+  <div class="materials-page grid-background">
+    <section class="library-hero page-container">
+      <div>
+        <div class="section-kicker">БИБЛИОТЕКА</div>
+        <h1>найди нужный<br><span>материал</span></h1>
+        <p>
+          Методички, лекции, задания и другие учебные материалы
+          в одном архиве.
+        </p>
       </div>
-      <button @click="searchByKeyword" class="btn btn-primary search-btn">Поиск</button>
-    </div>
-    
-    <div class="filters-container" v-if="!isLoading">
-      <div class="filter-header">
-        <h3>Фильтр материалов</h3>
-        <button @click="resetFilters" class="btn-reset">Сбросить фильтры</button>
+    </section>
+
+    <section class="page-container library-content">
+      <div v-if="successMessage" class="success-message">
+        {{ successMessage }}
       </div>
-      
-      <div class="filters">
-        <div class="filter-item">
-          <label for="course-filter">Курс:</label>
-          <select id="course-filter" v-model="filters.course">
-            <option :value="null">Все курсы</option>
-            <option v-for="course in courses" :key="course" :value="course">{{ course }}</option>
-          </select>
+
+      <div class="search-panel">
+        <div class="search-row">
+          <div class="search-input-wrap">
+            <span class="search-icon">⌕</span>
+            <input
+              v-model="keyword"
+              type="text"
+              class="search-input"
+              placeholder="Поиск по ключевому слову..."
+              @keyup.enter="searchByKeyword"
+            />
+            <button
+              v-if="keyword"
+              class="clear-search-btn"
+              type="button"
+              title="Очистить поиск"
+              @click="clearKeywordSearch"
+            >
+              ×
+            </button>
+          </div>
+
+          <button
+            class="search-button"
+            type="button"
+            @click="searchByKeyword"
+          >
+            Найти
+            <span>→</span>
+          </button>
         </div>
-        
-        <div class="filter-item">
-          <label for="subject-filter">Предмет:</label>
-          <div class="custom-field-container">
-            <select v-if="!customSubject" id="subject-filter" v-model="filters.subject" :disabled="filters.course === null">
-              <option value="">Все предметы</option>
-              <option v-for="subject in availableSubjects" :key="subject" :value="subject">{{ subject }}</option>
-            </select>
-            <input v-else type="text" id="customSubject" v-model="filters.subject" placeholder="Введите предмет для фильтрации" />
-            <button type="button" class="toggle-btn" @click="toggleCustomSubject()" :disabled="filters.course === null">
-              {{ customSubject ? 'Из списка' : 'Свой' }}
+
+        <div v-if="!isLoading" class="filters-panel">
+          <div class="filters-heading">
+            <div>
+              <span class="filters-label">ФИЛЬТРЫ</span>
+              <h2>Уточнить поиск</h2>
+            </div>
+
+            <button
+              type="button"
+              class="reset-button"
+              @click="resetFilters"
+            >
+              Сбросить
+            </button>
+          </div>
+
+          <div class="filters-grid">
+            <div class="filter-item">
+              <label for="course-filter">Курс</label>
+              <select id="course-filter" v-model="filters.course">
+                <option :value="null">Все курсы</option>
+                <option
+                  v-for="course in courses"
+                  :key="course"
+                  :value="course"
+                >
+                  {{ course }} курс
+                </option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <div class="filter-label-row">
+                <label for="subject-filter">Предмет</label>
+
+                <button
+                  type="button"
+                  class="mode-button"
+                  :disabled="filters.course === null"
+                  @click="toggleCustomSubject"
+                >
+                  {{ customSubject ? 'Выбрать из списка' : 'Ввести вручную' }}
+                </button>
+              </div>
+
+              <select
+                v-if="!customSubject"
+                id="subject-filter"
+                v-model="filters.subject"
+                :disabled="filters.course === null"
+              >
+                <option value="">Все предметы</option>
+                <option
+                  v-for="subject in availableSubjects"
+                  :key="subject"
+                  :value="subject"
+                >
+                  {{ subject }}
+                </option>
+              </select>
+
+              <input
+                v-else
+                id="customSubject"
+                v-model="filters.subject"
+                type="text"
+                placeholder="Название предмета"
+              />
+            </div>
+
+            <div class="filter-item">
+              <div class="filter-label-row">
+                <label for="teacher-filter">Преподаватель</label>
+
+                <button
+                  type="button"
+                  class="mode-button"
+                  :disabled="!filters.subject"
+                  @click="toggleCustomTeacher"
+                >
+                  {{ customTeacher ? 'Выбрать из списка' : 'Ввести вручную' }}
+                </button>
+              </div>
+
+              <select
+                v-if="!customTeacher"
+                id="teacher-filter"
+                v-model="filters.teacherName"
+                :disabled="!filters.subject"
+              >
+                <option value="">Все преподаватели</option>
+                <option
+                  v-for="teacher in availableTeachers"
+                  :key="teacher"
+                  :value="teacher"
+                >
+                  {{ teacher }}
+                </option>
+              </select>
+
+              <input
+                v-else
+                id="customTeacher"
+                v-model="filters.teacherName"
+                type="text"
+                placeholder="Имя преподавателя"
+              />
+            </div>
+
+            <div class="filter-item">
+              <label for="semester-filter">Семестр</label>
+              <select id="semester-filter" v-model="filters.semester">
+                <option :value="null">Все семестры</option>
+                <option
+                  v-for="semester in semesters"
+                  :key="semester"
+                  :value="semester"
+                >
+                  {{ semester }} семестр
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filters-actions">
+            <button
+              class="apply-button"
+              type="button"
+              @click="searchMaterials"
+            >
+              Применить фильтры
+              <span>→</span>
             </button>
           </div>
         </div>
-        
-        <div class="filter-item">
-          <label for="teacher-filter">Преподаватель:</label>
-          <div class="custom-field-container">
-            <select v-if="!customTeacher" id="teacher-filter" v-model="filters.teacherName" :disabled="!filters.subject">
-              <option value="">Все преподаватели</option>
-              <option v-for="teacher in availableTeachers" :key="teacher" :value="teacher">{{ teacher }}</option>
-            </select>
-            <input v-else type="text" id="customTeacher" v-model="filters.teacherName" placeholder="Введите преподавателя для фильтрации" />
-            <button type="button" class="toggle-btn" @click="toggleCustomTeacher()" :disabled="!filters.subject">
-              {{ customTeacher ? 'Из списка' : 'Свой' }}
-            </button>
-          </div>
+      </div>
+
+      <div class="results-heading">
+        <div>
+          <div class="section-kicker">РЕЗУЛЬТАТЫ</div>
+          <h2>материалы</h2>
         </div>
-        
-        <div class="filter-item">
-          <label for="semester-filter">Семестр:</label>
-          <select id="semester-filter" v-model="filters.semester">
-            <option :value="null">Все семестры</option>
-            <option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option>
-          </select>
+
+        <span v-if="!isLoading && !noResultsMessage" class="results-count">
+          {{ filteredMaterials.length }}
+        </span>
+      </div>
+
+      <div v-if="isLoading" class="state-card">
+        <div class="state-icon">…</div>
+        <div>
+          <strong>Загружаем материалы</strong>
+          <p>Это займёт несколько секунд.</p>
         </div>
       </div>
-      
-      <div class="filter-actions">
-        <button @click="searchMaterials" class="btn btn-search">Поиск</button>
+
+      <div v-else-if="noResultsMessage" class="state-card">
+        <div class="state-icon">⌕</div>
+        <div>
+          <strong>{{ noResultsMessage }}</strong>
+          <p>Попробуй изменить запрос или параметры фильтрации.</p>
+
+          <button
+            v-if="keyword || filters.course || filters.subject || filters.teacherName || filters.semester"
+            class="state-button"
+            type="button"
+            @click="resetFilters(); keyword = ''; searchMaterials();"
+          >
+            Сбросить поиск
+          </button>
+        </div>
       </div>
-    </div>
-    
-    <div v-if="isLoading" class="loading-message">Загрузка материалов...</div>
-    
-    <div v-else-if="noResultsMessage" class="no-results-message">
-      <p>{{ noResultsMessage }}</p>
-      <button v-if="keyword || filters.course || filters.subject || filters.teacherName || filters.semester" 
-              @click="resetFilters(); keyword = ''; searchMaterials();" 
-              class="btn btn-reset-search">
-        Сбросить все фильтры
-      </button>
-    </div>
-    
-    <div v-else class="materials-list">
-      <div v-if="filteredMaterials.length === 0" class="no-materials">
-        <p v-if="materials.length === 0">Нажмите кнопку Поиск для отображения материалов.</p>
-        <p v-else>Нет материалов, соответствующих критериям фильтра. Попробуйте изменить фильтры.</p>
+
+      <div v-else-if="filteredMaterials.length === 0" class="state-card">
+        <div class="state-icon">□</div>
+        <div>
+          <strong>Материалов пока нет</strong>
+          <p>Попробуй изменить параметры поиска.</p>
+        </div>
       </div>
-      
+
       <div v-else class="material-cards">
-        <Material v-for="material in filteredMaterials" :key="material.id" :material="material" @view-details="viewMaterialDetails" />
+        <Material
+          v-for="material in filteredMaterials"
+          :key="material.id"
+          :material="material"
+          @view-details="viewMaterialDetails"
+        />
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.tittle{
+.materials-page {
+  min-height: 100vh;
+  padding-bottom: 90px;
+  color: var(--color-text, #161616);
+}
+
+.library-hero {
+  padding-top: 62px;
+  padding-bottom: 38px;
+}
+
+.section-kicker,
+.filters-label {
+  color: var(--color-text-secondary, #64645f);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.library-hero h1 {
+  margin: 10px 0 18px;
+  font-size: clamp(56px, 7vw, 102px);
+  font-weight: 900;
+  line-height: 0.88;
+  letter-spacing: -0.065em;
+}
+
+.library-hero h1 span {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 0 12px 7px;
+  background: var(--color-blue, #cbe8f2);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  transform: rotate(-1deg);
+}
+
+.library-hero p {
+  max-width: 590px;
+  margin: 0;
+  color: var(--color-text-secondary, #64645f);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.library-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.materials-page { 
-  max-width: 1000px; 
-  margin: 0 auto; 
-  display: flex; 
-  flex-direction: column;
+  gap: 28px;
 }
 
-.filters-container { background-color: white; border-radius: 12px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-.filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.filter-header h3 { margin: 0; color: #2d3748; }
-.btn-reset { background-color: #e2e8f0; border: none; padding: 8px 12px; border-radius: 4px; font-size: 14px; color: #4a5568; cursor: pointer; transition: background-color 0.3s; }
-.btn-reset:hover { background-color: #cbd5e0; }
-.filters { display: flex; flex-wrap: wrap; gap: 20px; }
-.filter-item { flex: 1; min-width: 200px; }
-.filter-item label { display: block; margin-bottom: 8px; font-weight: bold; color: #4a5568; }
-.custom-field-container { display: flex; align-items: center; gap: 10px; }
-.custom-field-container select, .custom-field-container input { flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 40
-  px; font-size: 14px; }
-.toggle-btn { background-color: #718096; color: white; border: none; border-radius: 4px; padding: 6px 10px; font-size: 12px; cursor: pointer; transition: background-color 0.3s; }
-.toggle-btn:hover { background-color: #4a5568; }
-.toggle-btn:disabled { background-color: #a0aec0; cursor: not-allowed; }
-select { width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 14px; }
-select:disabled { background-color: #edf2f7; cursor: not-allowed; }
-.loading-message { padding: 40px; text-align: center; background-color: #f7fafc; border-radius: 6px; color: #718096; }
-.filter-actions { display: flex; justify-content: right; margin-top: 20px; }
-.btn-search { background-color: #234866; color: white; padding: 10px 24px; font-size: 16px; }
-.btn-search:hover { background-color: #225d94; }
-.no-materials { padding: 40px; text-align: center; background-color: #f7fafc; border-radius: 6px; color: #718096; }
-.material-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-.btn { padding: 8px 16px; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background-color 0.3s; }
-.success-message { background-color: #68d391; color: white; padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: center; animation: fadeIn 0.5s; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-/* Стили для сообщения об отсутствии результатов */
-.no-results-message {
-  padding: 30px;
-  text-align: center;
-  background-color: #f7fafc;
-  border-radius: 6px;
-  color: #4a5568;
-  margin-bottom: 20px;
-  border: 1px solid #e2e8f0;
+.success-message {
+  padding: 13px 16px;
+  border: 1px solid #9eb38b;
+  border-radius: 12px;
+  background: var(--color-green, #dce8c6);
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.no-results-message p {
-  font-size: 18px;
-  margin-bottom: 15px;
+.search-panel {
+  overflow: hidden;
+  border: 1px solid var(--color-border-dark, #202020);
+  border-radius: 18px;
+  background: rgba(255,255,255,.9);
+  box-shadow: var(--shadow-card, 0 8px 30px rgba(24,24,20,.06));
 }
 
-.btn-reset-search {
-  background-color: #3182ce;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: background-color 0.3s;
+.search-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid var(--color-border, #d9d8d2);
 }
 
-.btn-reset-search:hover {
-  background-color: #2b6cb0;
-}
-
-/* Стили для поисковой строки */
-.search-container {
-  display: flex;
-  margin-bottom: 20px;
-  gap: 10px;
-}
-
-.search-input-container {
+.search-input-wrap {
   position: relative;
-  flex: 1;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  color: var(--color-text-secondary, #64645f);
+  font-size: 20px;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 40px 12px 15px;
-  border: 2px solid #e2e8f0;
-  border-radius: 20px;
-  font-size: 16px;
-  transition: border-color 0.3s, box-shadow 0.3s;
+  min-height: 50px;
+  padding: 0 44px 0 46px;
+  border: 1px solid var(--color-border, #d9d8d2);
+  border-radius: 999px;
+  outline: none;
+  background: var(--color-bg, #fbfaf6);
+  color: var(--color-text, #161616);
+  font-size: 15px;
 }
 
 .search-input:focus {
-  outline: none;
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+  border-color: #8fb9c9;
+  box-shadow: 0 0 0 3px rgba(203,232,242,.55);
 }
 
 .clear-search-btn {
   position: absolute;
-  right: 10px;
   top: 50%;
+  right: 14px;
+  width: 28px;
+  height: 28px;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #a0aec0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-secondary, #64645f);
   font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 5px;
-  line-height: 1;
 }
 
 .clear-search-btn:hover {
-  color: #718096;
+  background: var(--color-cream, #f4ead4);
 }
 
-.search-btn {
-  background-color: #234866;
-  color: white;
-  padding: 12px 20px;
-  font-size: 16px;
-  border-radius: 13px;
-  border: none;
+.search-button,
+.apply-button,
+.state-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  border: 1px solid var(--color-border-dark, #202020);
+  border-radius: 999px;
+  background: var(--color-text, #161616);
+  color: #fff;
+  font-weight: 800;
+}
+
+.search-button {
+  min-width: 126px;
+  min-height: 50px;
+  padding: 0 20px;
+}
+
+.filters-panel {
+  padding: 22px 18px 18px;
+}
+
+.filters-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 19px;
+}
+
+.filters-heading h2 {
+  margin: 5px 0 0;
+  font-size: 23px;
+  letter-spacing: -0.035em;
+}
+
+.reset-button,
+.mode-button {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary, #64645f);
+  font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
 
-.search-btn:hover {
-  background-color: #225d94;
+.reset-button:hover,
+.mode-button:hover:not(:disabled) {
+  color: var(--color-text, #161616);
+  text-decoration: underline;
 }
-</style> 
+
+.mode-button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: .7fr 1.4fr 1.4fr .7fr;
+  gap: 13px;
+}
+
+.filter-item label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-text, #161616);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filter-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.filter-item select,
+.filter-item input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #d9d8d2);
+  border-radius: 11px;
+  outline: none;
+  background: var(--color-bg, #fbfaf6);
+  color: var(--color-text, #161616);
+  font-size: 13px;
+}
+
+.filter-item select:focus,
+.filter-item input:focus {
+  border-color: #8fb9c9;
+  box-shadow: 0 0 0 3px rgba(203,232,242,.45);
+}
+
+.filter-item select:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.filters-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.apply-button {
+  min-height: 43px;
+  padding: 0 18px;
+  font-size: 12px;
+}
+
+.results-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.results-heading h2 {
+  margin: 6px 0 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 50px;
+  font-weight: 400;
+  line-height: .95;
+  letter-spacing: -.04em;
+}
+
+.results-count {
+  min-width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border-dark, #202020);
+  border-radius: 50%;
+  background: var(--color-green, #dce8c6);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.state-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 26px;
+  border: 1px dashed var(--color-border-dark, #202020);
+  border-radius: 16px;
+  background: rgba(255,255,255,.72);
+}
+
+.state-icon {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--color-blue, #cbe8f2);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.state-card strong {
+  display: block;
+  font-size: 15px;
+}
+
+.state-card p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary, #64645f);
+  font-size: 12px;
+}
+
+.state-button {
+  min-height: 37px;
+  margin-top: 12px;
+  padding: 0 14px;
+  font-size: 11px;
+}
+
+.material-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 1000px) {
+  .filters-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .library-hero {
+    padding-top: 42px;
+  }
+
+  .library-hero h1 {
+    font-size: clamp(48px, 15vw, 72px);
+  }
+
+  .search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .search-button {
+    width: 100%;
+  }
+
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-label-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .material-cards {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

@@ -1,12 +1,6 @@
 @import './base.css';
+@import './design-system.css';
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f0f4f8;
-  color: #333;
-}
 
 /* Utility classes */
 .container {
