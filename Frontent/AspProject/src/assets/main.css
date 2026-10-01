@@ -1,14 +1,1 @@
-@import './base.css';
 @import './design-system.css';
-
-
-/* Utility classes */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.text-center {
-  text-align: center;
-}

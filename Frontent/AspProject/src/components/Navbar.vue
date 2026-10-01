@@ -1,1473 +1,261 @@
 <script>
-import { defineComponent } from 'vue';
-
-import axios from 'axios';
-
-import { API_ENDPOINTS } from '@/config.js';
-
-import { jwtDecode } from 'jwt-decode';
-
-import ErrorHandler from './ErrorHandler.vue';
-
-import SuccessHandler from './SuccessHandler.vue';
-
-
+import { defineComponent } from 'vue'
+import axios from 'axios'
+import { jwtDecode } from 'jwt-decode'
+import { API_ENDPOINTS } from '@/config.js'
 
 export default defineComponent({
-
   name: 'Navbar',
-
-  components: {
-
-    ErrorHandler,
-
-    SuccessHandler
-
-  },
-
   data: () => ({
-
+    mobileNav: false,
     isUserMenuOpen: false,
-
-    showRegisterModal: false,
-
     showLoginModal: false,
-
+    showRegisterModal: false,
     isLoggedIn: false,
-
-    registerForm: {
-
-      firstName: '',
-
-      lastName: '',
-
-      university: '',
-
-      institute: '',
-
-      login: '',
-
-      password: '',
-
-      confirmPassword: ''
-
-    },
-
-    loginForm: {
-
-      login: '',
-
-      password: ''
-
-    },
-
-    validationErrors: {
-
-      firstName: '',
-
-      lastName: '',
-
-      university: '',
-
-      institute: '',
-
-      login: '',
-
-      password: '',
-
-      confirmPassword: ''
-
-    },
-
     userName: '',
-
-    userLastName: ''
-
+    userLastName: '',
+    loginForm: { login: '', password: '' },
+    registerForm: {
+      firstName: '', lastName: '', university: '', institute: '',
+      login: '', password: '', confirmPassword: ''
+    },
+    validationErrors: {}
   }),
-
-  created() {
-
-    // Check for existing token to get user info
-
-    const token = localStorage.getItem('AuthToken');
-
-    if (token) {
-
-      this.isLoggedIn = true;
-
-      try {
-
-        const decodedToken = jwtDecode(token);
-
-        if (decodedToken.FirstName) {
-
-          console.log(decodedToken);
-
-          this.userName = decodedToken.FirstName;
-
-          this.userLastName = decodedToken.LastName;
-
-        }
-
-      } catch (error) {
-
-        console.error('Error decoding token for user info:', error);
-
-      }
-
-    }
-
-  },
-
   computed: {
-
-    currentRoute() {
-
-      return this.$route.path;
-
+    currentRoute() { return this.$route.path },
+    displayName() {
+      if (!this.isLoggedIn) return 'Аккаунт'
+      return [this.userName, this.userLastName].filter(Boolean).join(' ') || 'Профиль'
     }
-
   },
-
-  methods: {
-
-    handleNavigation(route) {
-
-      if (route === '/materials') {
-
-        this.$router.push(route);
-
-        return;
-
+  watch: {
+    '$route.query.auth': {
+      immediate: true,
+      handler(value) {
+        if (value === 'required' && !this.isLoggedIn) this.showLoginModal = true
       }
-
-
-
-      if (!this.isLoggedIn) {
-
-        this.$notify.error('Для доступа к этой странице необходимо войти в аккаунт или зарегистрироваться');
-
-        return;
-
-      }
-
-
-
-      this.$router.push(route);
-
     },
-
-    toggleUserMenu() {
-
-      this.isUserMenuOpen = !this.isUserMenuOpen;
-
-    },
-
-    openRegisterModal() {
-
-      this.showRegisterModal = true;
-
-      this.isUserMenuOpen = false;
-
-    },
-
-    closeRegisterModal() {
-
-      this.showRegisterModal = false;
-
-      this.registerForm = {
-
-        firstName: '',
-
-        lastName: '',
-
-        university: '',
-
-        institute: '',
-
-        login: '',
-
-        password: '',
-
-        confirmPassword: ''
-
-      };
-
-      this.validationErrors = {
-
-        firstName: '',
-
-        lastName: '',
-
-        university: '',
-
-        institute: '',
-
-        login: '',
-
-        password: '',
-
-        confirmPassword: ''
-
-      };
-
-    },
-
-    openLoginModal() {
-
-      this.showLoginModal = true;
-
-      this.isUserMenuOpen = false;
-
-    },
-
-    closeLoginModal() {
-
-      this.showLoginModal = false;
-
-      this.loginForm = { login: '', password: '' };
-
-    },
-
-    validateEmail(email) {
-
-      return /^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email);
-
-    },
-
-    validatePassword(password) {
-
-      return {
-
-        hasUppercase: /[A-Z]/.test(password),
-
-        hasLowercase: /[a-z]/.test(password),
-
-        hasNumber: /[0-9]/.test(password),
-
-        hasSpecial: /[^a-zA-Z0-9]/.test(password),
-
-        isLongEnough: password.length >= 8
-
-      };
-
-    },
-
-    validateName(name) {
-
-      return /^[А-ЯЁA-Z][а-яёa-z-]+$/.test(name);
-
-    },
-
-    validateForm() {
-
-      let isValid = true;
-
-      this.validationErrors = {
-
-        firstName: '',
-
-        lastName: '',
-
-        university: '',
-
-        institute: '',
-
-        login: '',
-
-        password: '',
-
-        confirmPassword: ''
-
-      };
-
-
-
-      if (!this.registerForm.login) {
-
-        this.validationErrors.login = "Электронная почта обязательна";
-
-        isValid = false;
-
-      } else if (this.registerForm.login.length < 3 || this.registerForm.login.length > 50) {
-
-        this.validationErrors.login = "Длина электронной почты должна быть от 3 до 50 символов";
-
-        isValid = false;
-
-      } else if (!this.validateEmail(this.registerForm.login)) {
-
-        this.validationErrors.login = "Некорректный адрес электронной почты";
-
-        isValid = false;
-
-      }
-
-
-
-      if (!this.registerForm.password) {
-
-        this.validationErrors.password = "Пароль обязателен";
-
-        isValid = false;
-
-      } else {
-
-        const pwdVal = this.validatePassword(this.registerForm.password);
-
-        if (!pwdVal.isLongEnough) {
-
-          this.validationErrors.password = "Пароль должен быть не менее 8 символов";
-
-        } else if (!pwdVal.hasUppercase) {
-
-          this.validationErrors.password = "Пароль должен содержать хотя бы одну заглавную букву";
-
-        } else if (!pwdVal.hasLowercase) {
-
-          this.validationErrors.password = "Пароль должен содержать хотя бы одну строчную букву";
-
-        } else if (!pwdVal.hasNumber) {
-
-          this.validationErrors.password = "Пароль должен содержать хотя бы одну цифру";
-
-        } else if (!pwdVal.hasSpecial) {
-
-          this.validationErrors.password = "Пароль должен содержать хотя бы один специальный символ";
-
-        }
-
-        if (this.validationErrors.password) isValid = false;
-
-      }
-
-
-
-      if (this.registerForm.password !== this.registerForm.confirmPassword) {
-
-        this.validationErrors.confirmPassword = "Пароли не совпадают";
-
-        isValid = false;
-
-      }
-
-
-
-      if (!this.registerForm.firstName) {
-
-        this.validationErrors.firstName = "Имя обязательно";
-
-        isValid = false;
-
-      } else if (this.registerForm.firstName.length < 2 || this.registerForm.firstName.length > 50) {
-
-        this.validationErrors.firstName = "Длина имени должна быть от 2 до 50 символов";
-
-        isValid = false;
-
-      } else if (!this.validateName(this.registerForm.firstName)) {
-
-        this.validationErrors.firstName = "Имя должно начинаться с заглавной буквы и содержать только буквы и дефис";
-
-        isValid = false;
-
-      }
-
-
-
-      if (this.registerForm.lastName) {
-
-        if (this.registerForm.lastName.length < 2 || this.registerForm.lastName.length > 50) {
-
-          this.validationErrors.lastName = "Длина фамилии должна быть от 2 до 50 символов";
-
-          isValid = false;
-
-        } else if (!this.validateName(this.registerForm.lastName)) {
-
-          this.validationErrors.lastName = "Фамилия должна начинаться с заглавной буквы и содержать только буквы и дефис";
-
-          isValid = false;
-
-        }
-
-      }
-
-
-
-      if (!this.registerForm.university) {
-
-        this.validationErrors.university = "Университет обязателен";
-
-        isValid = false;
-
-      }
-
-
-
-      if (!this.registerForm.institute) {
-
-        this.validationErrors.institute = "Институт обязателен";
-
-        isValid = false;
-
-      }
-
-
-
-      return isValid;
-
-    },
-
-    async registerUser() {
-
-      if (!this.validateForm()) return;
-
-
-
-      try {
-
-        const response = await axios.post(API_ENDPOINTS.REGISTER, {
-
-          Login: this.registerForm.login,
-
-          Password: this.registerForm.password,
-
-          FirstName: this.registerForm.firstName,
-
-          LastName: this.registerForm.lastName,
-
-          University: this.registerForm.university,
-
-          Institute: this.registerForm.institute
-
-        });
-
-
-
-        console.log('Registration response:', response.data);
-
-        this.$notify.success(response.data);
-
-
-
-        const userEmail = this.registerForm.login;
-
-        this.closeRegisterModal();
-
-        this.loginForm.login = userEmail;
-
-        this.openLoginModal();
-
-      } catch (error) {
-
-        console.error('Registration error:', error);
-
-
-
-        if (error.response) {
-
-          const status = error.response.status;
-
-
-
-          if (status === 400) {
-
-            const validationErrors = error.response.data;
-
-            let errorMessage = 'Ошибки валидации:\n';
-
-
-
-            if (Array.isArray(validationErrors)) {
-
-              validationErrors.forEach(err => {
-
-                errorMessage += `- ${err.propertyName}: ${err.errorMessage}\n`;
-
-              });
-
-            } else {
-
-              errorMessage = 'Ошибка валидации данных';
-
-            }
-
-
-
-            this.$notify.error(errorMessage);
-
-          } else if (status === 409) {
-
-            this.$notify.error(error.response.data || 'Пользователь с такой почтой уже существует');
-
-          } else if (status >= 500) {
-
-            this.$notify.error(error.response.data || 'Ошибка при регистрации пользователя. Попробуйте позже.');
-
-          } else {
-
-            this.$notify.error('Ошибка при регистрации: ' + (error.response.data || error.message));
-
-          }
-
-        } else {
-
-          this.$notify.error('Ошибка соединения с сервером. Пожалуйста, проверьте подключение к интернету.');
-
-        }
-
-      }
-
-    },
-
-    logoutUser() {
-
-      // Send logout request to the server
-
-      axios.post(API_ENDPOINTS.LOGOUT, {}, {
-
-        withCredentials: true
-
-      })
-
-      .then(response => {
-
-        console.log('Logout successful:', response.data);
-
-      })
-
-      .catch(error => {
-
-        console.error('Logout error:', error);
-
-      })
-
-      .finally(() => {
-
-        // Clear the token from localStorage
-
-        localStorage.removeItem('AuthToken');
-
-
-
-        // Clear cookies related to authentication
-
-        document.cookie.split(";").forEach(function(c) {
-
-          document.cookie = c.replace(/^ +/, "").replace(/=.\*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-
-        });
-
-
-
-        // Reset user data
-
-        this.userName = '';
-
-        this.userLastName = '';
-
-        this.isLoggedIn = false;
-
-        this.isUserMenuOpen = false;
-
-
-
-        // Inform the user
-
-        this.$notify.success('Вы успешно вышли из системы');
-
-
-
-        // Redirect to materials page instead of reloading
-
-        this.$router.push('/materials');
-
-      });
-
-    },
-
-    loginUser() {
-
-      if (!this.loginForm.login || !this.loginForm.password) {
-
-        this.$notify.error('Пожалуйста, заполните все поля');
-
-        return;
-
-      }
-
-
-
-      axios.post(API_ENDPOINTS.LOGIN, {
-
-        Login: this.loginForm.login,
-
-        Password: this.loginForm.password
-
-      })
-
-      .then(response => {
-
-        console.log(response.data);
-
-        if (response.data && response.data.token) {
-
-          localStorage.setItem("AuthToken", response.data.token);
-
-          console.log('Token stored:', response.data.token);
-
-
-
-          try {
-
-            const decodedToken = jwtDecode(response.data.token);
-
-            console.log(decodedToken);
-
-            if (decodedToken.FirstName) {
-
-              console.log(decodedToken.FirstName);
-
-              this.userName = decodedToken.FirstName;
-
-              this.userLastName = decodedToken.LastName;
-
-            }
-
-          } catch (error) {
-
-            console.error('Error decoding token for user info:', error);
-
-          }
-
-
-
-          this.isLoggedIn = true;
-
-          this.closeLoginModal();
-
-          console.log(document.cookie);
-
-          // The token refresh will be handled automatically by the global interceptor
-
-          this.$notify.success('Вы успешно вошли в систему');
-
-          // Redirect to materials page instead of reloading
-
-          this.$router.push('/materials');
-
-        }
-
-      })
-
-      .catch(error => {
-
-        console.error('Login error:', error);
-
-
-
-        if (error.response) {
-
-          const status = error.response.status;
-
-
-
-          if (status === 400) {
-
-            const validationErrors = error.response.data;
-
-            let errorMessage = 'Ошибки валидации:\n';
-
-
-
-            if (Array.isArray(validationErrors)) {
-
-              validationErrors.forEach(err => {
-
-                errorMessage += `- ${err.propertyName}: ${err.errorMessage}\n`;
-
-              });
-
-            } else {
-
-              errorMessage = error.response.data || 'Ошибка валидации данных';
-
-            }
-            this.$notify.error(errorMessage);
-
-          } else if (status === 401) {
-
-            this.$notify.error('Неверный пароль');
-
-          } else if (status === 404) {
-
-            this.$notify.error(error.response.data || 'Пользователь не найден');
-
-          } else if (status >= 500) {
-
-            this.$notify.error(error.response.data || 'Ошибка сервера. Попробуйте позже.');
-
-          } else {
-
-            this.$notify.error('Ошибка при входе: ' + (error.response.data || error.message));
-
-          }
-
-        } else {
-
-          this.$notify.error('Ошибка соединения с сервером. Пожалуйста, проверьте подключение к интернету.');
-
-        }
-
-      });
-
+    '$route.path'() {
+      this.mobileNav = false
+      this.isUserMenuOpen = false
     }
-
+  },
+  created() { this.readToken() },
+  methods: {
+    readToken() {
+      const token = localStorage.getItem('AuthToken')
+      this.isLoggedIn = Boolean(token)
+      if (!token) return
+      try {
+        const decoded = jwtDecode(token)
+        this.userName = decoded.FirstName || decoded.firstName || ''
+        this.userLastName = decoded.LastName || decoded.lastName || ''
+      } catch (error) {
+        console.error('Token decode failed', error)
+      }
+    },
+    navigate(path) {
+      if (this.$route.path !== path) this.$router.push(path)
+      this.mobileNav = false
+    },
+    openLoginModal() {
+      this.showLoginModal = true
+      this.isUserMenuOpen = false
+    },
+    closeLoginModal() {
+      this.showLoginModal = false
+      this.loginForm = { login: '', password: '' }
+    },
+    openRegisterModal() {
+      this.showRegisterModal = true
+      this.isUserMenuOpen = false
+    },
+    closeRegisterModal() {
+      this.showRegisterModal = false
+      this.validationErrors = {}
+    },
+    validateRegister() {
+      const e = {}
+      if (!this.registerForm.firstName) e.firstName = 'Введите имя'
+      if (!this.registerForm.university) e.university = 'Введите университет'
+      if (!this.registerForm.institute) e.institute = 'Введите институт'
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.registerForm.login)) e.login = 'Введите корректную почту'
+      if ((this.registerForm.password || '').length < 8) e.password = 'Минимум 8 символов'
+      if (this.registerForm.password !== this.registerForm.confirmPassword) e.confirmPassword = 'Пароли не совпадают'
+      this.validationErrors = e
+      return Object.keys(e).length === 0
+    },
+    async registerUser() {
+      if (!this.validateRegister()) return
+      try {
+        await axios.post(API_ENDPOINTS.REGISTER, {
+          Login: this.registerForm.login,
+          Password: this.registerForm.password,
+          FirstName: this.registerForm.firstName,
+          LastName: this.registerForm.lastName,
+          University: this.registerForm.university,
+          Institute: this.registerForm.institute
+        })
+        const email = this.registerForm.login
+        this.closeRegisterModal()
+        this.loginForm.login = email
+        this.openLoginModal()
+        this.$notify.success('Регистрация завершена. Теперь войдите в аккаунт.')
+      } catch (error) {
+        this.$notify.error(error.response?.data || 'Не удалось зарегистрироваться')
+      }
+    },
+    async loginUser() {
+      if (!this.loginForm.login || !this.loginForm.password) {
+        this.$notify.error('Заполните почту и пароль')
+        return
+      }
+      try {
+        const response = await axios.post(API_ENDPOINTS.LOGIN, {
+          Login: this.loginForm.login,
+          Password: this.loginForm.password
+        })
+        const token = response.data?.token || response.data?.Token
+        if (!token) throw new Error('Token missing')
+        localStorage.setItem('AuthToken', token)
+        axios.defaults.headers.common.Authorization = `Bearer ${token}`
+        this.readToken()
+        this.closeLoginModal()
+        this.$notify.success('Вы вошли в аккаунт')
+        const next = this.$route.query.next
+        if (next) this.$router.push(String(next))
+      } catch (error) {
+        this.$notify.error(error.response?.data || 'Не удалось войти')
+      }
+    },
+    async logoutUser() {
+      try { await axios.post(API_ENDPOINTS.LOGOUT, {}, { withCredentials: true }) } catch (_) {}
+      localStorage.removeItem('AuthToken')
+      delete axios.defaults.headers.common.Authorization
+      this.isLoggedIn = false
+      this.userName = ''
+      this.userLastName = ''
+      this.isUserMenuOpen = false
+      this.$notify.success('Вы вышли из аккаунта')
+      if (this.$route.meta.requiresAuth) this.$router.push('/')
+    }
   }
-
-});
+})
 </script>
 
 <template>
   <div>
-    <ErrorHandler ref="errorHandler" />
-    <SuccessHandler ref="successHandler" />
+    <header class="site-header page-container">
+      <button class="wordmark" type="button" @click="navigate('/')">examarchive<span>.</span></button>
 
-    <header class="app-header">
-      <div class="header-inner">
-        <div class="brand" @click="handleNavigation('/materials')">
-          examarchive<span>.</span>
-        </div>
+      <nav class="main-nav" :class="{ 'nav-open': mobileNav }" aria-label="Главная навигация">
+        <router-link to="/" exact>Главная</router-link>
+        <router-link to="/materials">Библиотека</router-link>
+        <router-link to="/exam">Подготовка к экзамену</router-link>
+        <router-link to="/favorite">Избранное</router-link>
+        <router-link to="/assistant">AI-ассистент</router-link>
+      </nav>
 
-        <nav class="main-nav" aria-label="Основная навигация">
-          <a
-            @click="handleNavigation('/materials')"
-            class="nav-link"
-            :class="{ active: currentRoute.startsWith('/materials') }"
-          >
-            Библиотека
-          </a>
+      <div class="header-actions">
+        <button class="search-button" type="button" @click="navigate('/materials')" aria-label="Поиск материалов">
+          <span class="search-glyph">⌕</span><span class="search-label">Поиск...</span>
+        </button>
 
-          <a
-            @click="handleNavigation('/exam')"
-            class="nav-link"
-            :class="{ active: currentRoute === '/exam' }"
-          >
-            Подготовка к экзамену
-          </a>
+        <button v-if="isLoggedIn" class="upload-button" type="button" @click="navigate('/adding')">
+          <span>⇧</span><span>Загрузить материал</span>
+        </button>
 
-          <a
-            @click="handleNavigation('/favorite')"
-            class="nav-link"
-            :class="{ active: currentRoute === '/favorite' }"
-          >
-            Избранное
-          </a>
-        </nav>
-
-        <div class="header-actions">
-          <button
-            class="add-material-btn"
-            type="button"
-            @click="handleNavigation('/adding')"
-          >
-            <span class="plus">+</span>
-            <span>Добавить материал</span>
+        <div class="profile-wrap">
+          <button class="avatar-button" type="button" @click="isUserMenuOpen = !isUserMenuOpen" :aria-label="displayName">
+            <img src="/assets/avatar.jpg" alt="" />
           </button>
-
-          <div class="user-section">
-            <button
-              class="profile-button"
-              type="button"
-              @click="toggleUserMenu"
-              :aria-expanded="isUserMenuOpen ? 'true' : 'false'"
-            >
-              <span class="user-copy" v-if="isLoggedIn && (userName || userLastName)">
-                <span class="user-name">{{ userName }} {{ userLastName }}</span>
-                <span class="user-caption">Профиль</span>
-              </span>
-
-              <span v-else class="user-copy">
-                <span class="user-name">Аккаунт</span>
-                <span class="user-caption">Войти или зарегистрироваться</span>
-              </span>
-
-              <span class="avatar" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="img">
-                  <path
-                    d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"
-                  />
-                </svg>
-              </span>
-            </button>
-
-            <div v-if="isUserMenuOpen" class="user-dropdown">
-              <template v-if="isLoggedIn">
-                <div
-                  class="user-dropdown-item"
-                  @click="handleNavigation('/mypage'); isUserMenuOpen = false"
-                >
-                  Моя страница
-                </div>
-                <div class="user-dropdown-divider"></div>
-                <div class="user-dropdown-item danger" @click="logoutUser">
-                  Выйти
-                </div>
-              </template>
-
-              <template v-else>
-                <div class="user-dropdown-item" @click="openLoginModal">
-                  Войти
-                </div>
-                <div class="user-dropdown-item" @click="openRegisterModal">
-                  Зарегистрироваться
-                </div>
-              </template>
-            </div>
+          <div v-if="isUserMenuOpen" class="user-dropdown">
+            <template v-if="isLoggedIn">
+              <div class="dropdown-name">{{ displayName }}</div>
+              <button @click="navigate('/mypage')">Моя страница</button>
+              <button class="danger" @click="logoutUser">Выйти</button>
+            </template>
+            <template v-else>
+              <button @click="openLoginModal">Войти</button>
+              <button @click="openRegisterModal">Регистрация</button>
+            </template>
           </div>
         </div>
+
+        <button class="mobile-menu" type="button" @click="mobileNav = !mobileNav" aria-label="Меню">{{ mobileNav ? '×' : '☰' }}</button>
       </div>
     </header>
 
-    <div class="navbar-spacer"></div>
-
-    <!-- Registration Modal -->
-    <div v-if="showRegisterModal" class="modal-overlay" @click.self="closeRegisterModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <div>
-            <p class="modal-eyebrow">EXAMARCHIVE</p>
-            <h2>Регистрация</h2>
-          </div>
-          <button class="close-btn" type="button" @click="closeRegisterModal">&times;</button>
-        </div>
-
-        <div class="modal-body">
-          <form @submit.prevent="registerUser">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="firstName">Имя</label>
-                <input
-                  type="text"
-                  id="firstName"
-                  v-model="registerForm.firstName"
-                  placeholder="Введите имя"
-                  :class="{ 'input-error': validationErrors.firstName }"
-                  required
-                />
-                <div v-if="validationErrors.firstName" class="error-message">
-                  {{ validationErrors.firstName }}
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="lastName">Фамилия</label>
-                <input
-                  type="text"
-                  id="lastName"
-                  v-model="registerForm.lastName"
-                  placeholder="Введите фамилию"
-                  :class="{ 'input-error': validationErrors.lastName }"
-                  required
-                />
-                <div v-if="validationErrors.lastName" class="error-message">
-                  {{ validationErrors.lastName }}
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="university">Университет</label>
-              <input
-                type="text"
-                id="university"
-                v-model="registerForm.university"
-                placeholder="Например, КФУ"
-                :class="{ 'input-error': validationErrors.university }"
-                required
-              />
-              <div v-if="validationErrors.university" class="error-message">
-                {{ validationErrors.university }}
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="institute">Институт</label>
-              <input
-                type="text"
-                id="institute"
-                v-model="registerForm.institute"
-                placeholder="Например, ИТИС"
-                :class="{ 'input-error': validationErrors.institute }"
-                required
-              />
-              <div v-if="validationErrors.institute" class="error-message">
-                {{ validationErrors.institute }}
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="login">Электронная почта</label>
-              <input
-                type="email"
-                id="login"
-                v-model="registerForm.login"
-                placeholder="name@example.com"
-                :class="{ 'input-error': validationErrors.login }"
-                required
-              />
-              <div v-if="validationErrors.login" class="error-message">
-                {{ validationErrors.login }}
-              </div>
-            </div>
-
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="password">Пароль</label>
-                <input
-                  type="password"
-                  id="password"
-                  v-model="registerForm.password"
-                  placeholder="Введите пароль"
-                  :class="{ 'input-error': validationErrors.password }"
-                  required
-                />
-                <div v-if="validationErrors.password" class="error-message">
-                  {{ validationErrors.password }}
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="confirmPassword">Повторите пароль</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  v-model="registerForm.confirmPassword"
-                  placeholder="Повторите пароль"
-                  :class="{ 'input-error': validationErrors.confirmPassword }"
-                  required
-                />
-                <div v-if="validationErrors.confirmPassword" class="error-message">
-                  {{ validationErrors.confirmPassword }}
-                </div>
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" class="btn-secondary" @click="closeRegisterModal">
-                Отмена
-              </button>
-              <button type="submit" class="btn-primary">
-                Зарегистрироваться
-              </button>
-            </div>
-          </form>
-        </div>
+    <div v-if="showLoginModal" class="modal-backdrop" @click.self="closeLoginModal">
+      <div class="modal-card">
+        <button class="modal-close" @click="closeLoginModal">×</button>
+        <span class="eyebrow">EXAMARCHIVE</span>
+        <h2 class="serif modal-title">с возвращением.</h2>
+        <p class="modal-subtitle">Войди, чтобы открыть избранное, профиль и загрузку материалов.</p>
+        <form class="auth-form" @submit.prevent="loginUser">
+          <label>Электронная почта<input v-model="loginForm.login" type="email" placeholder="name@example.com" /></label>
+          <label>Пароль<input v-model="loginForm.password" type="password" placeholder="Введите пароль" /></label>
+          <button class="pill-button pill-dark" type="submit">Войти →</button>
+        </form>
+        <button class="switch-auth" @click="closeLoginModal(); openRegisterModal()">Нет аккаунта? Зарегистрироваться</button>
       </div>
     </div>
 
-    <!-- Login Modal -->
-    <div v-if="showLoginModal" class="modal-overlay" @click.self="closeLoginModal">
-      <div class="modal-content modal-content--small">
-        <div class="modal-header">
-          <div>
-            <p class="modal-eyebrow">EXAMARCHIVE</p>
-            <h2>Вход</h2>
-          </div>
-          <button class="close-btn" type="button" @click="closeLoginModal">&times;</button>
-        </div>
-
-        <div class="modal-body">
-          <form @submit.prevent="loginUser">
-            <div class="form-group">
-              <label for="loginUsername">Электронная почта</label>
-              <input
-                type="text"
-                id="loginUsername"
-                v-model="loginForm.login"
-                placeholder="name@example.com"
-                required
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="loginPassword">Пароль</label>
-              <input
-                type="password"
-                id="loginPassword"
-                v-model="loginForm.password"
-                placeholder="Введите пароль"
-                required
-              />
-            </div>
-
-            <div class="form-actions">
-              <button type="button" class="btn-secondary" @click="closeLoginModal">
-                Отмена
-              </button>
-              <button type="submit" class="btn-primary">
-                Войти
-              </button>
-            </div>
-          </form>
-        </div>
+    <div v-if="showRegisterModal" class="modal-backdrop" @click.self="closeRegisterModal">
+      <div class="modal-card modal-card-wide">
+        <button class="modal-close" @click="closeRegisterModal">×</button>
+        <span class="eyebrow">НОВЫЙ АККАУНТ</span>
+        <h2 class="serif modal-title">присоединяйся.</h2>
+        <form class="auth-form two-columns" @submit.prevent="registerUser">
+          <label>Имя<input v-model="registerForm.firstName" /><small>{{ validationErrors.firstName }}</small></label>
+          <label>Фамилия<input v-model="registerForm.lastName" /></label>
+          <label>Университет<input v-model="registerForm.university" placeholder="КФУ" /><small>{{ validationErrors.university }}</small></label>
+          <label>Институт<input v-model="registerForm.institute" placeholder="ИТИС" /><small>{{ validationErrors.institute }}</small></label>
+          <label class="full">Электронная почта<input v-model="registerForm.login" type="email" /><small>{{ validationErrors.login }}</small></label>
+          <label>Пароль<input v-model="registerForm.password" type="password" /><small>{{ validationErrors.password }}</small></label>
+          <label>Повторите пароль<input v-model="registerForm.confirmPassword" type="password" /><small>{{ validationErrors.confirmPassword }}</small></label>
+          <div class="full auth-actions"><button class="pill-button pill-dark" type="submit">Создать аккаунт →</button></div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.app-header {
-  position: fixed;
-  inset: 0 0 auto 0;
-  z-index: 1000;
-  height: 76px;
-  background: rgba(251, 250, 246, 0.94);
-  border-bottom: 1px solid var(--color-border, #d9d8d2);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.header-inner {
-  width: min(calc(100% - 64px), var(--page-width, 1440px));
-  height: 100%;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 42px;
-}
-
-.brand {
-  font-size: 26px;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.055em;
-  color: var(--color-text, #161616);
-  cursor: pointer;
-  user-select: none;
-}
-
-.brand span {
-  color: #7ea992;
-}
-
-.main-nav {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-}
-
-.nav-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill, 999px);
-  color: var(--color-text-secondary, #64645f);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease;
-}
-
-.nav-link:hover {
-  color: var(--color-text, #161616);
-  background: rgba(220, 232, 198, 0.5);
-}
-
-.nav-link.active {
-  color: var(--color-text, #161616);
-  background: var(--color-green, #dce8c6);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.add-material-btn {
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 16px;
-  border: 1px solid var(--color-border-dark, #202020);
-  border-radius: var(--radius-pill, 999px);
-  background: var(--color-text, #161616);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  transition:
-    transform 0.18s ease,
-    background-color 0.18s ease;
-}
-
-.add-material-btn:hover {
-  transform: translateY(-1px);
-  background: #30302d;
-}
-
-.plus {
-  font-size: 20px;
-  line-height: 1;
-  margin-top: -2px;
-}
-
-.user-section {
-  position: relative;
-}
-
-.profile-button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 3px 3px 10px;
-  border: 0;
-  border-radius: var(--radius-pill, 999px);
-  background: transparent;
-  color: inherit;
-}
-
-.profile-button:hover {
-  background: rgba(203, 232, 242, 0.45);
-}
-
-.user-copy {
-  max-width: 160px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  line-height: 1.15;
-}
-
-.user-name {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text, #161616);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.user-caption {
-  margin-top: 3px;
-  color: var(--color-text-secondary, #64645f);
-  font-size: 10px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.avatar {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--color-border-dark, #202020);
-  border-radius: 50%;
-  background: var(--color-blue, #cbe8f2);
-}
-
-.avatar svg {
-  width: 20px;
-  height: 20px;
-  fill: var(--color-text, #161616);
-}
-
-.user-dropdown {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  min-width: 210px;
-  padding: 8px;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border-dark, #202020);
-  border-radius: 14px;
-  box-shadow: var(--shadow-card, 0 8px 30px rgba(24, 24, 20, 0.06));
-}
-
-.user-dropdown-item {
-  padding: 11px 12px;
-  border-radius: 9px;
-  color: var(--color-text, #161616);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.user-dropdown-item:hover {
-  background: var(--color-cream, #f4ead4);
-}
-
-.user-dropdown-item.danger:hover {
-  background: #f7e4e1;
-  color: #8f2d25;
-}
-
-.user-dropdown-divider {
-  height: 1px;
-  margin: 5px 4px;
-  background: var(--color-border, #d9d8d2);
-}
-
-.navbar-spacer {
-  height: 76px;
-}
-
-/* Modals */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(20, 20, 18, 0.38);
-  backdrop-filter: blur(3px);
-}
-
-.modal-content {
-  width: min(680px, 100%);
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  background: var(--color-bg, #fbfaf6);
-  border: 1px solid var(--color-border-dark, #202020);
-  border-radius: var(--radius-lg, 24px);
-  box-shadow: 0 24px 80px rgba(18, 18, 16, 0.18);
-}
-
-.modal-content--small {
-  width: min(470px, 100%);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 28px 30px 20px;
-  border-bottom: 1px solid var(--color-border, #d9d8d2);
-}
-
-.modal-eyebrow {
-  margin: 0 0 5px;
-  color: var(--color-text-secondary, #64645f);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-}
-
-.modal-header h2 {
-  margin: 0;
-  color: var(--color-text, #161616);
-  font-size: 30px;
-  line-height: 1;
-  letter-spacing: -0.045em;
-}
-
-.close-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 1px solid var(--color-border, #d9d8d2);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-text, #161616);
-  font-size: 24px;
-  line-height: 1;
-}
-
-.close-btn:hover {
-  background: var(--color-cream, #f4ead4);
-}
-
-.modal-body {
-  padding: 26px 30px 30px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.form-group {
-  margin-bottom: 17px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--color-text, #161616);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.form-group input {
-  width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border, #d9d8d2);
-  border-radius: 12px;
-  outline: none;
-  background: var(--color-surface, #fff);
-  color: var(--color-text, #161616);
-  font-size: 14px;
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.form-group input::placeholder {
-  color: #9a9a94;
-}
-
-.form-group input:focus {
-  border-color: #7ca9ba;
-  box-shadow: 0 0 0 3px rgba(158, 211, 231, 0.3);
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 25px;
-}
-
-.btn-primary,
-.btn-secondary {
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: var(--radius-pill, 999px);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.btn-primary {
-  border: 1px solid var(--color-border-dark, #202020);
-  background: var(--color-text, #161616);
-  color: #fff;
-}
-
-.btn-primary:hover {
-  background: #30302d;
-}
-
-.btn-secondary {
-  border: 1px solid var(--color-border, #d9d8d2);
-  background: var(--color-surface, #fff);
-  color: var(--color-text, #161616);
-}
-
-.btn-secondary:hover {
-  background: var(--color-cream, #f4ead4);
-}
-
-.input-error {
-  border-color: #bf4b42 !important;
-  box-shadow: 0 0 0 2px rgba(191, 75, 66, 0.12) !important;
-}
-
-.error-message {
-  margin-top: 5px;
-  color: #a73831;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-@media (max-width: 1100px) {
-  .header-inner {
-    width: min(calc(100% - 36px), var(--page-width, 1440px));
-    gap: 20px;
-  }
-
-  .main-nav {
-    gap: 2px;
-  }
-
-  .nav-link {
-    padding: 0 10px;
-  }
-
-  .user-copy {
-    display: none;
-  }
-}
-
-@media (max-width: 820px) {
-  .app-header,
-  .navbar-spacer {
-    height: 68px;
-  }
-
-  .header-inner {
-    grid-template-columns: auto 1fr;
-  }
-
-  .main-nav {
-    display: none;
-  }
-
-  .header-actions {
-    justify-self: end;
-  }
-
-  .add-material-btn span:not(.plus) {
-    display: none;
-  }
-
-  .add-material-btn {
-    width: 40px;
-    min-height: 40px;
-    justify-content: center;
-    padding: 0;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-}
-
-@media (max-width: 520px) {
-  .header-inner {
-    width: calc(100% - 24px);
-  }
-
-  .brand {
-    font-size: 22px;
-  }
-
-  .modal-overlay {
-    padding: 12px;
-  }
-
-  .modal-header {
-    padding: 22px 20px 17px;
-  }
-
-  .modal-body {
-    padding: 20px;
-  }
-
-  .form-actions {
-    flex-direction: column-reverse;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-  }
-}
+.site-header { height: 66px; display: flex; align-items: center; gap: 26px; position: relative; z-index: 40; }
+.wordmark { border: 0; background: transparent; padding: 0; color: #111; font: 700 clamp(27px,3vw,39px)/1 Georgia,serif; letter-spacing: -.075em; white-space: nowrap; }
+.wordmark span { color: #6d9f8d; }
+.main-nav { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; white-space: nowrap; }
+.main-nav a { color: #252525; text-decoration: none; font-size: 11px; padding: 9px 11px; border-radius: 10px; transition: background .2s; }
+.main-nav a:hover, .main-nav a.router-link-exact-active { background: var(--color-blue); }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.search-button { border: 1px solid #e2e2dc; background: #ffffffb8; height: 36px; width: 150px; padding: 0 12px; border-radius: 22px; display: flex; align-items: center; gap: 8px; color: #111; }
+.search-label { color: #999; font-size: 10px; flex: 1; text-align: left; }
+.search-glyph { font-size: 18px; }
+.upload-button { border: 0; background: var(--color-green); height: 36px; padding: 0 15px; border-radius: 20px; display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 10px; }
+.avatar-button { width: 35px; height: 35px; padding: 0; border: 0; border-radius: 50%; overflow: hidden; }
+.avatar-button img { width: 100%; height: 100%; object-fit: cover; }
+.profile-wrap { position: relative; }
+.user-dropdown { position: absolute; top: calc(100% + 9px); right: 0; width: 205px; padding: 7px; border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 12px; box-shadow: var(--shadow-card); }
+.user-dropdown button, .dropdown-name { width: 100%; text-align: left; padding: 10px; border: 0; border-radius: 8px; background: transparent; font-size: 12px; }
+.dropdown-name { font-weight: 800; border-bottom: 1px solid var(--color-border); border-radius: 0; margin-bottom: 4px; }
+.user-dropdown button:hover { background: var(--color-blue); }
+.user-dropdown .danger:hover { background: #ffe7e5; }
+.mobile-menu { display: none; border: 0; background: transparent; font-size: 22px; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 100; background: #161b1c7a; display: grid; place-items: center; padding: 20px; backdrop-filter: blur(4px); }
+.modal-card { width: min(100%, 510px); max-height: 88vh; overflow: auto; position: relative; background: var(--color-bg); border-radius: 17px; padding: 30px; box-shadow: 0 24px 90px #0003; }
+.modal-card-wide { width: min(100%, 680px); }
+.modal-close { position: absolute; top: 18px; right: 18px; width: 33px; height: 33px; border: 1px solid var(--color-border); border-radius: 50%; background: white; font-size: 20px; }
+.modal-title { font-size: 48px; line-height: 1.05; margin: 8px 35px 5px 0; }
+.modal-subtitle { color: #666; font-size: 13px; margin: 0 0 22px; }
+.auth-form { display: grid; gap: 14px; }
+.auth-form.two-columns { grid-template-columns: 1fr 1fr; }
+.auth-form .full { grid-column: 1 / -1; }
+.auth-form label { display: grid; gap: 6px; font-size: 11px; font-weight: 700; }
+.auth-form input { height: 45px; border: 1px solid var(--color-border); border-radius: 11px; background: white; padding: 0 13px; outline: 0; }
+.auth-form small { min-height: 13px; color: #aa4740; font-weight: 500; }
+.auth-actions { display: flex; justify-content: flex-end; margin-top: 7px; }
+.switch-auth { margin-top: 18px; border: 0; background: transparent; font-size: 11px; text-decoration: underline; }
+@media (max-width: 950px) { .main-nav a { font-size: 9px; padding: 8px 6px; } .search-button { width: 37px; justify-content: center; } .search-label { display: none; } .upload-button span:last-child { display: none; } .upload-button { width: 36px; padding: 0; justify-content: center; } }
+@media (max-width: 700px) { .site-header { justify-content: space-between; } .main-nav { display:none; position:absolute; top:58px; left:0; right:0; padding:12px; border:1px solid var(--color-border); border-radius:12px; background:var(--color-surface); box-shadow:var(--shadow-card); flex-direction:column; align-items:stretch; } .main-nav.nav-open{display:flex}.main-nav a{font-size:13px;padding:11px}.mobile-menu{display:block}.auth-form.two-columns{grid-template-columns:1fr}.auth-form .full{grid-column:auto}.wordmark{font-size:31px} }
 </style>
